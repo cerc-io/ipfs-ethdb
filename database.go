@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package ipfseth
+package ipfsethdb
 
 import (
 	"errors"
@@ -32,6 +32,7 @@ var (
 	getPgStr    = "SELECT data FROM public.blocks WHERE key = $1"
 	putPgStr    = "INSERT INTO public.blocks (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING"
 	deletePgStr = "DELETE FROM public.blocks WHERE key = $1"
+	dbSizePgStr = "SELECT pg_database_size(current_database())"
 )
 
 type Database struct {
@@ -145,9 +146,8 @@ func (d *Database) Stat(property string) (string, error) {
 	}
 	switch prop {
 	case Size:
-		pgStr := "SELECT pg_database_size(current_database())"
 		var byteSize string
-		return byteSize, d.db.Get(&byteSize, pgStr)
+		return byteSize, d.db.Get(&byteSize, dbSizePgStr)
 	case Idle:
 		return string(d.db.Stats().Idle), nil
 	case InUse:
