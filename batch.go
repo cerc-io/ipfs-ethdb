@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package ipfseth
+package ipfsethdb
 
 import (
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -43,8 +43,7 @@ func (b *Batch) Put(key []byte, value []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	_, err = b.tx.Exec(putPgStr, mhKey, value)
-	if err != nil {
+	if _, err = b.tx.Exec(putPgStr, mhKey, value); err != nil {
 		return err
 	}
 	b.size += len(value)
@@ -89,6 +88,7 @@ func (b *Batch) Replay(w ethdb.KeyValueWriter) error {
 
 // Reset satisfies the ethdb.Batch interface
 // Reset resets the batch for reuse
+// This should be called after every write
 func (b *Batch) Reset() {
 	var err error
 	b.tx, err = b.db.Beginx()
