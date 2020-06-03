@@ -41,6 +41,8 @@ func NewIterator(start, prefix []byte, db *sqlx.DB) ethdb.Iterator {
 // Next moves the iterator to the next key/value pair
 // It returns whether the iterator is exhausted
 func (i *Iterator) Next() bool {
+	// this is complicated by the ipfs db keys not being the keccak256 hashes
+	// go-ethereum usage of this method expects the iteration to occur over keccak256 keys
 	panic("implement me: Next")
 }
 
