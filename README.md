@@ -26,18 +26,23 @@ employ it as you would the usual [leveldb](https://github.com/ethereum/go-ethere
 with a few exceptions:
 
 ```go
-package example
+package main
 
 import (
 	"github.com/ethereum/go-ethereum/trie"
+    "github.com/jmoiron/sqlx"
 	"github.com/vulcanize/pg-ipfs-ethdb"
 )
 
-connectStr := "postgresql://localhost:5432/vulcanize_testing?sslmode=disable"
-db, _ := sqlx.Connect("postgres", connectStr)
+func main() {
+	connectStr := "postgresql://localhost:5432/vulcanize_testing?sslmode=disable"
+    db, _ := sqlx.Connect("postgres", connectStr)
 
-kvs := ipfsethdb.NewKeyValueStore(db)
-trieDB := trie.NewDatabase(db)
+    kvs := ipfsethdb.NewKeyValueStore(db)
+    trieDB := trie.NewDatabase(kvs)
+
+    // do stuff
+}
 ```
 
 EXCEPTIONS: AncientReader, AncientWriter, and Iteratee interfaces are not functionally complete.
