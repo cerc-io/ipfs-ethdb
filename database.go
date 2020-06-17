@@ -35,16 +35,19 @@ var (
 	dbSizePgStr = "SELECT pg_database_size(current_database())"
 )
 
+// Database is the type that satisfies the ethdb.Database and ethdb.KeyValueStore interfaces for PG-IPFS Ethereum data
 type Database struct {
 	db *sqlx.DB
 }
 
+// NewKeyValueStore returns a ethdb.KeyValueStore interface for PG-IPFS
 func NewKeyValueStore(db *sqlx.DB) ethdb.KeyValueStore {
 	return &Database{
 		db: db,
 	}
 }
 
+// NewDatabase returns a ethdb.Database interface for PG-IPFS
 func NewDatabase(db *sqlx.DB) ethdb.Database {
 	return &Database{
 		db: db,
@@ -190,7 +193,7 @@ func (d *Database) NewBatch() ethdb.Batch {
 // Note: This method assumes that the prefix is NOT part of the start, so there's
 // no need for the caller to prepend the prefix to the start
 func (d *Database) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
-	return NewIterator([]byte{}, []byte{}, d.db)
+	return NewIterator(start, prefix, d.db)
 }
 
 // Close satisfies the io.Closer interface

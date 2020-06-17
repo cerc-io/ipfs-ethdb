@@ -1,5 +1,6 @@
 ## pg-ipfs-ethdb
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/vulcanize/pg-ipfs-ethdb)](https://goreportcard.com/report/github.com/vulcanize/pg-ipfs-ethdb)
 
 > go-ethereum ethdb interfaces for Ethereum state data stored in Postgres-backed IPFS
 
@@ -29,6 +30,8 @@ with a few exceptions:
 package main
 
 import (
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/jmoiron/sqlx"
 	"github.com/vulcanize/pg-ipfs-ethdb"
@@ -40,8 +43,12 @@ func main() {
 
     kvs := ipfsethdb.NewKeyValueStore(db)
     trieDB := trie.NewDatabase(kvs)
+    trie, _ := trie.New(common.Hash{}, trieDB)
+    // do stuff with trie or trieDB
 
-    // do stuff
+    database := ipfsethdb.NewDatabase(db)
+    statedb := state.NewDatabase(database)
+    // do stuff with the state database
 }
 ```
 

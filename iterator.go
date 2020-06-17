@@ -21,14 +21,18 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// We don't need these iterator interfaces right now
+// Iterator is the type that satisfies the ethdb.Iterator interface for PG-IPFS Ethereum data
 // Iteratee interface is only used in Geth for various tests, trie/sync_bloom.go (for fast sync), and rawdb.InspectDatabase
+// Don't need this interface for the majority of state operations
+// This should not be confused with trie.NodeIterator or state.NodeIteraor (which can be constructed from the ethdb.KeyValueStore and ethdb.Database interfaces)
+// ethdb.KeyValueStore => trie.Database => trie.Trie => trie.NodeIterator
 type Iterator struct {
 	db                 *sqlx.DB
 	currentKey, prefix []byte
 	err                error
 }
 
+// NewIterator returns a ethdb.Iterator interface for PG-IPFS
 func NewIterator(start, prefix []byte, db *sqlx.DB) ethdb.Iterator {
 	return &Iterator{
 		db:         db,
