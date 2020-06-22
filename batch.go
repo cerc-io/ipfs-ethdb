@@ -21,12 +21,14 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+// Batch is the type that satisfies the ethdb.Batch interface for PG-IPFS Ethereum data
 type Batch struct {
 	db   *sqlx.DB
 	tx   *sqlx.Tx
 	size int
 }
 
+// NewBatch returns a ethdb.Batch interface for PG-IPFS
 func NewBatch(db *sqlx.DB) ethdb.Batch {
 	return &Batch{
 		db: db,
