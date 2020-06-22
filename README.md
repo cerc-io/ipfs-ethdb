@@ -43,11 +43,11 @@ func main() {
 
     kvs := ipfsethdb.NewKeyValueStore(db)
     trieDB := trie.NewDatabase(kvs)
-    trie, _ := trie.New(common.Hash{}, trieDB)
+    t, _ := trie.New(common.Hash{}, trieDB)
     // do stuff with trie or trieDB
 
     database := ipfsethdb.NewDatabase(db)
-    statedb := state.NewDatabase(database)
+    stateDatabase := state.NewDatabase(database)
     // do stuff with the state database
 }
 ```
@@ -56,6 +56,43 @@ EXCEPTIONS: AncientReader, AncientWriter, and Iteratee interfaces are not functi
 
 Ancient data does not currently have a representation on IPFS, and recapitulation of the database key iterator is complicated since go-ethereum
 types that use this interface expect the iterator to iterate over keccak256 hash keys, whereas the keys for Ethereum data on IPFS are derived from that hash but not the hash itself.
+
+Iteratee interface is only used in Geth for various tests, in trie/sync_bloom.go (for fast sync), and for rawdb.InspectDatabase while the Ancient interfaces are only used for Ancient data operations,
+so we don't need these interfaces for the majority of state operations.
+
+The ethdb.Iteratee/ethdb.Iterator interfaces should not be confused with the trie.NodeIterator or state.NodeIterator.
+These can be constructed from the ethdb.KeyValueStore and ethdb.Database interfaces, respectively:
+
+```go
+package main
+
+import (
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/state"
+	"github.com/ethereum/go-ethereum/core/state/snapshot"
+	"github.com/ethereum/go-ethereum/trie"
+	"github.com/jmoiron/sqlx"
+	"github.com/vulcanize/pg-ipfs-ethdb"
+)
+
+func main() {
+    connectStr := "postgresql://localhost:5432/vulcanize_testing?sslmode=disable"
+    db, _ := sqlx.Connect("postgres", connectStr)
+
+    kvs := ipfsethdb.NewKeyValueStore(db)
+    trieDB := trie.NewDatabase(kvs)
+    t, _ := trie.New(common.Hash{}, trieDB)
+    trieNodeIterator := t.NodeIterator([]byte{})
+    // do stuff with trie node iterator
+
+    database := ipfsethdb.NewDatabase(db)
+    stateDatabase := state.NewDatabase(database)
+    snapshotTree := snapshot.New(kvs, trieDB, 1, common.Hash{}, false)
+    stateDB, _ := state.New(common.Hash{}, stateDatabase, snapshotTree)
+    stateDBNodeIterator := state.NewNodeIterator(stateDB)
+    // do stuff with the statedb node iterator
+}
+```
 
 ## Maintainers
 @vulcanize
