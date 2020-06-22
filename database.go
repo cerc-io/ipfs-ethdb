@@ -185,15 +185,23 @@ func (d *Database) NewBatch() ethdb.Batch {
 	return NewBatch(d.db)
 }
 
-// NewIterator satisfies the ethdb.Iteratee interface
-// it creates a binary-alphabetical iterator over a subset
-// of database content with a particular key prefix, starting at a particular
-// initial key (or after, if it does not exist).
-//
-// Note: This method assumes that the prefix is NOT part of the start, so there's
-// no need for the caller to prepend the prefix to the start
-func (d *Database) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
-	return NewIterator(start, prefix, d.db)
+// NewIterator creates a binary-alphabetical iterator over the entire keyspace
+// contained within the key-value database.
+func (d *Database) NewIterator() ethdb.Iterator {
+	return NewIterator([]byte{}, []byte{}, d.db)
+}
+
+// NewIteratorWithStart creates a binary-alphabetical iterator over a subset of
+// database content starting at a particular initial key (or after, if it does
+// not exist).
+func (d *Database) NewIteratorWithStart(start []byte) ethdb.Iterator {
+	return NewIterator(start, []byte{}, d.db)
+}
+
+// NewIteratorWithPrefix creates a binary-alphabetical iterator over a subset
+// of database content with a particular key prefix.
+func (d *Database) NewIteratorWithPrefix(prefix []byte) ethdb.Iterator {
+	return NewIterator([]byte{}, prefix, d.db)
 }
 
 // Close satisfies the io.Closer interface
