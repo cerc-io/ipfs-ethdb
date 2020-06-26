@@ -24,44 +24,19 @@ ethdb interfaces for Ethereum data on IPFS by handling the conversion of a kecca
 ## Usage
 To use this module simply import it and build the desired interface around an instance of [sqlx.DB](https://github.com/jmoiron/sqlx), you can then
 employ it as you would the usual [leveldb](https://github.com/ethereum/go-ethereum/tree/master/ethdb/leveldb) or [memorydb](https://github.com/ethereum/go-ethereum/tree/master/ethdb/memorydb) interfaces
-with a few exceptions:
+with a few exceptions: AncientReader, AncientWriter, Compacter, and Iteratee/Iterator interfaces are not functionally complete.
 
-```go
-package main
+Ancient data does not currently have a representation on IPFS, and recapitulation of the database key iterator and compacter is complicated since go-ethereum
+types that use this interface expect the iterator and compacter to operate over keccak256 hash key ranges, whereas the keys for Ethereum data on IPFS are derived from that hash but not the hash itself.
 
-import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/trie"
-	"github.com/jmoiron/sqlx"
-	"github.com/vulcanize/pg-ipfs-ethdb"
-)
+Iteratee interface is used in Geth for various tests, in trie/sync_bloom.go (for fast sync), rawdb.InspectDatabase, and the new (1.9.15) core/state/snapshot features;
+Ancient interfaces are used for Ancient/frozen data operations (e.g. rawdb/table.go); and Compacter is used in core/state/snapshot, rawdb/table.go, chaincmd.go, and the private debug api.
 
-func main() {
-    connectStr := "postgresql://localhost:5432/vulcanize_testing?sslmode=disable"
-    db, _ := sqlx.Connect("postgres", connectStr)
+Outside of these primarily auxiliary capabilities, this package satisfies the interfaces required for the majority of state operations using Ethereum data on PG-IPFS.
 
-    kvs := ipfsethdb.NewKeyValueStore(db)
-    trieDB := trie.NewDatabase(kvs)
-    t, _ := trie.New(common.Hash{}, trieDB)
-    // do stuff with trie or trieDB
-
-    database := ipfsethdb.NewDatabase(db)
-    stateDatabase := state.NewDatabase(database)
-    // do stuff with the state database
-}
-```
-
-EXCEPTIONS: AncientReader, AncientWriter, and Iteratee interfaces are not functionally complete.
-
-Ancient data does not currently have a representation on IPFS, and recapitulation of the database key iterator is complicated since go-ethereum
-types that use this interface expect the iterator to iterate over keccak256 hash keys, whereas the keys for Ethereum data on IPFS are derived from that hash but not the hash itself.
-
-Iteratee interface is only used in Geth for various tests, in trie/sync_bloom.go (for fast sync), and for rawdb.InspectDatabase while the Ancient interfaces are only used for Ancient data operations,
-so we don't need these interfaces for the majority of state operations.
-
-The ethdb.Iteratee/ethdb.Iterator interfaces should not be confused with the trie.NodeIterator or state.NodeIterator.
-These can be constructed from the ethdb.KeyValueStore and ethdb.Database interfaces, respectively:
+e.g.
+ 
+go-ethereum trie.NodeIterator and state.NodeIterator can be constructed from the ethdb.KeyValueStore and ethdb.Database interfaces, respectively:
 
 ```go
 package main
@@ -87,8 +62,7 @@ func main() {
 
     database := ipfsethdb.NewDatabase(db)
     stateDatabase := state.NewDatabase(database)
-    snapshotTree := snapshot.New(kvs, trieDB, 1, common.Hash{}, false)
-    stateDB, _ := state.New(common.Hash{}, stateDatabase, snapshotTree)
+    stateDB, _ := state.New(common.Hash{}, stateDatabase, nil)
     stateDBNodeIterator := state.NewNodeIterator(stateDB)
     // do stuff with the statedb node iterator
 }

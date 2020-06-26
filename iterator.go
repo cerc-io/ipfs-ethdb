@@ -22,10 +22,10 @@ import (
 )
 
 // Iterator is the type that satisfies the ethdb.Iterator interface for PG-IPFS Ethereum data
-// Iteratee interface is only used in Geth for various tests, trie/sync_bloom.go (for fast sync), and rawdb.InspectDatabase
-// Don't need this interface for the majority of state operations
-// This should not be confused with trie.NodeIterator or state.NodeIteraor (which can be constructed from the ethdb.KeyValueStore and ethdb.Database interfaces)
-// ethdb.KeyValueStore => trie.Database => trie.Trie => trie.NodeIterator
+// Iteratee interface is used in Geth for various tests, trie/sync_bloom.go (for fast sync),
+// rawdb.InspectDatabase, and the new core/state/snapshot features.
+// This should not be confused with trie.NodeIterator or state.NodeIteraor (which can be constructed
+// from the ethdb.KeyValueStoreand ethdb.Database interfaces)
 type Iterator struct {
 	db                 *sqlx.DB
 	currentKey, prefix []byte
