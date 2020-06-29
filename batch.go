@@ -17,85 +17,124 @@
 package ipfsethdb
 
 import (
+	"errors"
+
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/jmoiron/sqlx"
+	"github.com/hashicorp/golang-lru"
+	"github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-blockservice"
 )
 
-// Batch is the type that satisfies the ethdb.Batch interface for PG-IPFS Ethereum data
+var (
+	EvictionWarningErr = errors.New("warn: batch has exceeded capacity, data has been evicted")
+)
+
+// Batch is the type that satisfies the ethdb.Batch interface for IPFS Ethereum data using the ipfs blockservice interface
+// This is ipfs-backing-datastore agnostic but must operate through a configured ipfs node (and so is subject to lockfile contention with e.g. an ipfs daemon)
+// If blockservice block exchange is configured the blockservice can fetch data that are missing locally from IPFS peers
 type Batch struct {
-	db   *sqlx.DB
-	tx   *sqlx.Tx
-	size int
+	blockService          blockservice.BlockService
+	putCache, deleteCache *lru.Cache
+	valueSize             int
 }
 
-// NewBatch returns a ethdb.Batch interface for PG-IPFS
-func NewBatch(db *sqlx.DB) ethdb.Batch {
-	return &Batch{
-		db: db,
+// NewBatch returns a ethdb.Batch interface for IPFS
+func NewBatch(bs blockservice.BlockService, capacity int) (ethdb.Batch, error) {
+	putCache, err := lru.New(capacity)
+	if err != nil {
+		return nil, err
 	}
+	deleteCache, err := lru.New(capacity)
+	if err != nil {
+		return nil, err
+	}
+	return &Batch{
+		blockService: bs,
+		putCache:     putCache,
+		deleteCache:  deleteCache,
+	}, nil
 }
 
 // Put satisfies the ethdb.Batch interface
 // Put inserts the given value into the key-value data store
+// Key is expected to be the keccak256 hash of value
+// Returns an error when batch capacity has been exceeded and data was evicted
+// It is up to ensure they do not exceed capacity
+// The alternative is to check the cache len vs its capacity before inserting
+// but this adds additional overhead to every Put/Delete
 func (b *Batch) Put(key []byte, value []byte) (err error) {
-	if b.tx == nil {
-		b.Reset()
+	b.valueSize += len(value)
+	if b.putCache.Add(key, value) {
+		return EvictionWarningErr
 	}
-	mhKey, err := MultihashKeyFromKeccak256(key)
-	if err != nil {
-		return err
-	}
-	if _, err = b.tx.Exec(putPgStr, mhKey, value); err != nil {
-		return err
-	}
-	b.size += len(value)
 	return nil
 }
 
 // Delete satisfies the ethdb.Batch interface
 // Delete removes the key from the key-value data store
 func (b *Batch) Delete(key []byte) (err error) {
-	if b.tx == nil {
-		b.Reset()
+	if b.deleteCache.Add(key, true) {
+		return EvictionWarningErr
 	}
-	mhKey, err := MultihashKeyFromKeccak256(key)
-	if err != nil {
-		return err
-	}
-	_, err = b.tx.Exec(deletePgStr, mhKey)
-	return err
+	return nil
 }
 
 // ValueSize satisfies the ethdb.Batch interface
 // ValueSize retrieves the amount of data queued up for writing
 // The returned value is the total byte length of all data queued to write
 func (b *Batch) ValueSize() int {
-	return b.size
+	return b.valueSize
 }
 
 // Write satisfies the ethdb.Batch interface
 // Write flushes any accumulated data to disk
 func (b *Batch) Write() error {
-	if b.tx == nil {
-		return nil
+	puts := make([]blocks.Block, b.putCache.Len())
+	for i, key := range b.putCache.Keys() {
+		val, _ := b.putCache.Get(key) // don't need to check "ok"s, the key is known and val is always []byte
+		b, err := NewBlock(key.([]byte), val.([]byte))
+		if err != nil {
+			return err
+		}
+		puts[i] = b
 	}
-	return b.tx.Commit()
+	if err := b.blockService.AddBlocks(puts); err != nil {
+		return err
+	}
+	for _, key := range b.deleteCache.Keys() {
+		c, err := Keccak256ToCid(key.([]byte))
+		if err != nil {
+			return err
+		}
+		if err := b.blockService.DeleteBlock(c); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Replay satisfies the ethdb.Batch interface
 // Replay replays the batch contents
 func (b *Batch) Replay(w ethdb.KeyValueWriter) error {
-	return errNotSupported
+	for _, key := range b.putCache.Keys() {
+		val, _ := b.putCache.Get(key)
+		if err := w.Put(key.([]byte), val.([]byte)); err != nil {
+			return err
+		}
+	}
+	for _, key := range b.deleteCache.Keys() {
+		if err := w.Delete(key.([]byte)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Reset satisfies the ethdb.Batch interface
 // Reset resets the batch for reuse
 // This should be called after every write
 func (b *Batch) Reset() {
-	var err error
-	b.tx, err = b.db.Beginx()
-	if err != nil {
-		panic(err)
-	}
-	b.size = 0
+	b.deleteCache.Purge()
+	b.putCache.Purge()
+	b.valueSize = 0
 }

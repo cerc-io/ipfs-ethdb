@@ -17,6 +17,8 @@
 package ipfsethdb
 
 import (
+	"github.com/ipfs/go-block-format"
+	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-ipfs-blockstore"
 	"github.com/ipfs/go-ipfs-ds-help"
 	"github.com/jmoiron/sqlx"
@@ -25,8 +27,8 @@ import (
 )
 
 // MultihashKeyFromKeccak256 converts keccak256 hash bytes into a blockstore-prefixed multihash db key string
-func MultihashKeyFromKeccak256(b []byte) (string, error) {
-	mh, err := multihash.Encode(b, multihash.KECCAK_256)
+func MultihashKeyFromKeccak256(h []byte) (string, error) {
+	mh, err := multihash.Encode(h, multihash.KECCAK_256)
 	if err != nil {
 		return "", err
 	}
@@ -46,4 +48,22 @@ func TestDB() (*sqlx.DB, error) {
 func ResetTestDB(db *sqlx.DB) error {
 	_, err := db.Exec("TRUNCATE public.blocks")
 	return err
+}
+
+// Keccak256ToCid takes a keccak256 hash and returns its cid v0 using the provided codec.
+func Keccak256ToCid(h []byte) (cid.Cid, error) {
+	buf, err := multihash.Encode(h, multihash.KECCAK_256)
+	if err != nil {
+		return cid.Cid{}, err
+	}
+	return cid.NewCidV0(multihash.Multihash(buf)), nil
+}
+
+// NewBlock takes a keccak256 hash key and the rlp []byte value it was derived from and creates an ipfs block object
+func NewBlock(key, value []byte) (blocks.Block, error) {
+	c, err := Keccak256ToCid(key) // we are using cidv0 because we don't know the codec and codec doesn't matter, the datastore key is multihash-only derived
+	if err != nil {
+		return nil, err
+	}
+	return blocks.NewBlockWithCid(value, c)
 }

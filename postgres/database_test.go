@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package ipfsethdb_test
+package pgipfsethdb_test
 
 import (
 	"math/big"
@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/vulcanize/pg-ipfs-ethdb"
+	"github.com/vulcanize/pg-ipfs-ethdb/postgres"
 )
 
 var (
@@ -43,7 +44,7 @@ var _ = Describe("Database", func() {
 	BeforeEach(func() {
 		db, err = ipfsethdb.TestDB()
 		Expect(err).ToNot(HaveOccurred())
-		database = ipfsethdb.NewDatabase(db)
+		database = pgipfsethdb.NewDatabase(db)
 	})
 	AfterEach(func() {
 		err = ipfsethdb.ResetTestDB(db)

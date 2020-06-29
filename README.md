@@ -11,7 +11,7 @@ interfacing with a state database. These interfaces are used to build higher-lev
 which are used to perform the bulk of state related needs.
 
 Ethereum data can be stored on IPFS, standard codecs for Etheruem data are defined in the [go-cid](https://github.com/ipfs/go-cid) library. Here at Vulcanize we
-have [extended IPFS](https://github.com/vulcanize/go-ipfs/releases/tag/v0.4.22-alpha) to [use Postgres](https://github.com/vulcanize/go-ipfs-config/releases/tag/v0.0.8-alpha) as a backing database.
+have [extended IPFS](https://github.com/vulcanize/go-ipfs/releases/tag/v0.4.22-alpha) to [use Postgres](https://github.com/vulcanize/go-ipfs-config/releases/tag/v0.0.8-alpha) as a backing [datastore](https://github.com/ipfs/go-ds-sql/tree/master/postgres).
 Additionally, [we have extended go-ethereum](https://github.com/vulcanize/go-ethereum/releases/tag/v1.9.11-statediff-0.0.2) to enable the efficient export of state data in the form of state diff objects.
 Together, this allows us to store all Ethereum data on Postgres-backed IPFS.
 

@@ -14,32 +14,32 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package ipfsethdb
+package pgipfsethdb
 
 import (
-	"context"
-
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ipfs/go-blockservice"
+	"github.com/jmoiron/sqlx"
+
+	"github.com/vulcanize/pg-ipfs-ethdb"
 )
 
-// Iterator is the type that satisfies the ethdb.Iterator interface for IPFS Ethereum data
+// Iterator is the type that satisfies the ethdb.Iterator interface for PG-IPFS Ethereum data using a direct Postgres connection
 // Iteratee interface is used in Geth for various tests, trie/sync_bloom.go (for fast sync),
 // rawdb.InspectDatabase, and the new core/state/snapshot features.
 // This should not be confused with trie.NodeIterator or state.NodeIteraor (which can be constructed
 // from the ethdb.KeyValueStoreand ethdb.Database interfaces)
 type Iterator struct {
-	blockService       blockservice.BlockService
+	db                 *sqlx.DB
 	currentKey, prefix []byte
 	err                error
 }
 
 // NewIterator returns an ethdb.Iterator interface for PG-IPFS
-func NewIterator(start, prefix []byte, bs blockservice.BlockService) ethdb.Iterator {
+func NewIterator(start, prefix []byte, db *sqlx.DB) ethdb.Iterator {
 	return &Iterator{
-		blockService: bs,
-		prefix:       prefix,
-		currentKey:   start,
+		db:         db,
+		prefix:     prefix,
+		currentKey: start,
 	}
 }
 
@@ -72,22 +72,19 @@ func (i *Iterator) Key() []byte {
 // The caller should not modify the contents of the returned slice
 // and its contents may change on the next call to Next
 func (i *Iterator) Value() []byte {
-	c, err := Keccak256ToCid(i.currentKey)
+	mhKey, err := ipfsethdb.MultihashKeyFromKeccak256(i.currentKey)
 	if err != nil {
 		i.err = err
 		return nil
 	}
-	block, err := i.blockService.GetBlock(context.Background(), c)
-	if err != nil {
-		i.err = err
-		return nil
-	}
-	return block.RawData()
+	var data []byte
+	i.err = i.db.Get(&data, getPgStr, mhKey)
+	return data
 }
 
 // Release satisfies the ethdb.Iterator interface
 // Release releases associated resources
 // Release should always succeed and can be called multiple times without causing error
 func (i *Iterator) Release() {
-	i.blockService.Close()
+	i.db.Close()
 }

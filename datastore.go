@@ -17,85 +17,83 @@
 package ipfsethdb
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/jmoiron/sqlx"
+	"github.com/ipfs/go-blockservice"
 )
-
-var errNotSupported = errors.New("this operation is not supported")
 
 var (
-	hasPgStr    = "SELECT exists(select 1 from public.blocks WHERE key = $1)"
-	getPgStr    = "SELECT data FROM public.blocks WHERE key = $1"
-	putPgStr    = "INSERT INTO public.blocks (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING"
-	deletePgStr = "DELETE FROM public.blocks WHERE key = $1"
-	dbSizePgStr = "SELECT pg_database_size(current_database())"
+	defaultBatchCapacity = 1024
+	errNotSupported      = errors.New("this operation is not supported")
 )
 
-// Database is the type that satisfies the ethdb.Database and ethdb.KeyValueStore interfaces for PG-IPFS Ethereum data
+// Database is the type that satisfies the ethdb.Database and ethdb.KeyValueStore interfaces for IPFS Ethereum data
+// This is ipfs-backing-datastore agnostic but must operate through a configured ipfs node (and so is subject to lockfile contention with e.g. an ipfs daemon)
+// If blockservice block exchange is configured the blockservice can fetch data that are missing locally from IPFS peers
 type Database struct {
-	db *sqlx.DB
+	blockService blockservice.BlockService
 }
 
-// NewKeyValueStore returns a ethdb.KeyValueStore interface for PG-IPFS
-func NewKeyValueStore(db *sqlx.DB) ethdb.KeyValueStore {
+// NewKeyValueStore returns a ethdb.KeyValueStore interface for IPFS
+func NewKeyValueStore(bs blockservice.BlockService) ethdb.KeyValueStore {
 	return &Database{
-		db: db,
+		blockService: bs,
 	}
 }
 
-// NewDatabase returns a ethdb.Database interface for PG-IPFS
-func NewDatabase(db *sqlx.DB) ethdb.Database {
+// NewDatabase returns a ethdb.Database interface for IPFS
+func NewDatabase(bs blockservice.BlockService) ethdb.Database {
 	return &Database{
-		db: db,
+		blockService: bs,
 	}
 }
 
 // Has satisfies the ethdb.KeyValueReader interface
 // Has retrieves if a key is present in the key-value data store
+// This only operates on the local blockstore not through the exchange
 func (d *Database) Has(key []byte) (bool, error) {
-	mhKey, err := MultihashKeyFromKeccak256(key)
+	c, err := Keccak256ToCid(key) // we are using cidv0 because we don't know the codec and codec doesn't matter, the datastore key is multihash-only derived
 	if err != nil {
 		return false, err
 	}
-	var exists bool
-	return exists, d.db.Get(&exists, hasPgStr, mhKey)
+	return d.blockService.Blockstore().Has(c)
 }
 
 // Get satisfies the ethdb.KeyValueReader interface
 // Get retrieves the given key if it's present in the key-value data store
 func (d *Database) Get(key []byte) ([]byte, error) {
-	mhKey, err := MultihashKeyFromKeccak256(key)
+	c, err := Keccak256ToCid(key)
 	if err != nil {
 		return nil, err
 	}
-	var data []byte
-	return data, d.db.Get(&data, getPgStr, mhKey)
+	block, err := d.blockService.GetBlock(context.Background(), c)
+	return block.RawData(), err
 }
 
 // Put satisfies the ethdb.KeyValueWriter interface
 // Put inserts the given value into the key-value data store
+// Key is expected to be the keccak256 hash of value
 func (d *Database) Put(key []byte, value []byte) error {
-	mhKey, err := MultihashKeyFromKeccak256(key)
+	b, err := NewBlock(key, value)
 	if err != nil {
 		return err
 	}
-	_, err = d.db.Exec(putPgStr, mhKey, value)
-	return err
+	return d.blockService.AddBlock(b)
 }
 
 // Delete satisfies the ethdb.KeyValueWriter interface
 // Delete removes the key from the key-value data store
 func (d *Database) Delete(key []byte) error {
-	mhKey, err := MultihashKeyFromKeccak256(key)
+	c, err := Keccak256ToCid(key)
 	if err != nil {
 		return err
 	}
-	_, err = d.db.Exec(deletePgStr, mhKey)
-	return err
+	return d.blockService.DeleteBlock(c)
 }
 
 // DatabaseProperty enum type
@@ -103,38 +101,14 @@ type DatabaseProperty int
 
 const (
 	Unknown DatabaseProperty = iota
-	Size
-	Idle
-	InUse
-	MaxIdleClosed
-	MaxLifetimeClosed
-	MaxOpenConnections
-	OpenConnections
-	WaitCount
-	WaitDuration
+	ExchangeOnline
 )
 
 // DatabasePropertyFromString helper function
 func DatabasePropertyFromString(property string) (DatabaseProperty, error) {
 	switch strings.ToLower(property) {
-	case "size":
-		return Size, nil
-	case "idle":
-		return Idle, nil
-	case "inuse":
-		return InUse, nil
-	case "maxidleclosed":
-		return MaxIdleClosed, nil
-	case "maxlifetimeclosed":
-		return MaxLifetimeClosed, nil
-	case "maxopenconnections":
-		return MaxOpenConnections, nil
-	case "openconnections":
-		return OpenConnections, nil
-	case "waitcount":
-		return WaitCount, nil
-	case "waitduration":
-		return WaitDuration, nil
+	case "exchange", "online":
+		return ExchangeOnline, nil
 	default:
 		return Unknown, fmt.Errorf("unknown database property")
 	}
@@ -148,25 +122,9 @@ func (d *Database) Stat(property string) (string, error) {
 		return "", err
 	}
 	switch prop {
-	case Size:
-		var byteSize string
-		return byteSize, d.db.Get(&byteSize, dbSizePgStr)
-	case Idle:
-		return string(d.db.Stats().Idle), nil
-	case InUse:
-		return string(d.db.Stats().InUse), nil
-	case MaxIdleClosed:
-		return string(d.db.Stats().MaxIdleClosed), nil
-	case MaxLifetimeClosed:
-		return string(d.db.Stats().MaxLifetimeClosed), nil
-	case MaxOpenConnections:
-		return string(d.db.Stats().MaxOpenConnections), nil
-	case OpenConnections:
-		return string(d.db.Stats().OpenConnections), nil
-	case WaitCount:
-		return string(d.db.Stats().WaitCount), nil
-	case WaitDuration:
-		return d.db.Stats().WaitDuration.String(), nil
+	case ExchangeOnline:
+		online := d.blockService.Exchange().IsOnline()
+		return strconv.FormatBool(online), nil
 	default:
 		return "", fmt.Errorf("unhandled database property")
 	}
@@ -182,7 +140,11 @@ func (d *Database) Compact(start []byte, limit []byte) error {
 // NewBatch creates a write-only database that buffers changes to its host db
 // until a final write is called
 func (d *Database) NewBatch() ethdb.Batch {
-	return NewBatch(d.db)
+	b, err := NewBatch(d.blockService, defaultBatchCapacity)
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
 
 // NewIterator satisfies the ethdb.Iteratee interface
@@ -193,13 +155,13 @@ func (d *Database) NewBatch() ethdb.Batch {
 // Note: This method assumes that the prefix is NOT part of the start, so there's
 // no need for the caller to prepend the prefix to the start
 func (d *Database) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
-	return NewIterator(start, prefix, d.db)
+	return NewIterator(start, prefix, d.blockService)
 }
 
 // Close satisfies the io.Closer interface
 // Close closes the db connection
 func (d *Database) Close() error {
-	return d.db.DB.Close()
+	return d.blockService.Close()
 }
 
 // HasAncient satisfies the ethdb.AncientReader interface
