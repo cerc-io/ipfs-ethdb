@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/ipfs/go-cid/_rsrch/cidiface"
 	"strconv"
 	"strings"
 
@@ -57,7 +58,8 @@ func NewDatabase(bs blockservice.BlockService) ethdb.Database {
 // Has retrieves if a key is present in the key-value data store
 // This only operates on the local blockstore not through the exchange
 func (d *Database) Has(key []byte) (bool, error) {
-	c, err := Keccak256ToCid(key) // we are using cidv0 because we don't know the codec and codec doesn't matter, the datastore key is multihash-only derived
+	// we are using state codec because we don't know the codec and at this level the codec doesn't matter, the datastore key is multihash-only derived
+	c, err := Keccak256ToCid(key, cid.EthStateTrie)
 	if err != nil {
 		return false, err
 	}
@@ -67,12 +69,16 @@ func (d *Database) Has(key []byte) (bool, error) {
 // Get satisfies the ethdb.KeyValueReader interface
 // Get retrieves the given key if it's present in the key-value data store
 func (d *Database) Get(key []byte) ([]byte, error) {
-	c, err := Keccak256ToCid(key)
+	// we are using state codec because we don't know the codec and at this level the codec doesn't matter, the datastore key is multihash-only derived
+	c, err := Keccak256ToCid(key, cid.EthStateTrie)
 	if err != nil {
 		return nil, err
 	}
 	block, err := d.blockService.GetBlock(context.Background(), c)
-	return block.RawData(), err
+	if err != nil {
+		return nil, err
+	}
+	return block.RawData(), nil
 }
 
 // Put satisfies the ethdb.KeyValueWriter interface
@@ -89,7 +95,8 @@ func (d *Database) Put(key []byte, value []byte) error {
 // Delete satisfies the ethdb.KeyValueWriter interface
 // Delete removes the key from the key-value data store
 func (d *Database) Delete(key []byte) error {
-	c, err := Keccak256ToCid(key)
+	// we are using state codec because we don't know the codec and at this level the codec doesn't matter, the datastore key is multihash-only derived
+	c, err := Keccak256ToCid(key, cid.EthStateTrie)
 	if err != nil {
 		return err
 	}

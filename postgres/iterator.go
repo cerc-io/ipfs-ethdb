@@ -19,8 +19,6 @@ package pgipfsethdb
 import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
-
-	"github.com/vulcanize/pg-ipfs-ethdb"
 )
 
 // Iterator is the type that satisfies the ethdb.Iterator interface for PG-IPFS Ethereum data using a direct Postgres connection
@@ -72,7 +70,7 @@ func (i *Iterator) Key() []byte {
 // The caller should not modify the contents of the returned slice
 // and its contents may change on the next call to Next
 func (i *Iterator) Value() []byte {
-	mhKey, err := ipfsethdb.MultihashKeyFromKeccak256(i.currentKey)
+	mhKey, err := MultihashKeyFromKeccak256(i.currentKey)
 	if err != nil {
 		i.err = err
 		return nil

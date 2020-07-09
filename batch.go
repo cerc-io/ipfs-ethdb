@@ -19,10 +19,12 @@ package ipfsethdb
 import (
 	"errors"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/hashicorp/golang-lru"
 	"github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-blockservice"
+	"github.com/ipfs/go-cid/_rsrch/cidiface"
 )
 
 var (
@@ -64,7 +66,8 @@ func NewBatch(bs blockservice.BlockService, capacity int) (ethdb.Batch, error) {
 // but this adds additional overhead to every Put/Delete
 func (b *Batch) Put(key []byte, value []byte) (err error) {
 	b.valueSize += len(value)
-	if b.putCache.Add(key, value) {
+	strKey := common.Bytes2Hex(key)
+	if b.putCache.Add(strKey, value) {
 		return EvictionWarningErr
 	}
 	return nil
@@ -73,7 +76,8 @@ func (b *Batch) Put(key []byte, value []byte) (err error) {
 // Delete satisfies the ethdb.Batch interface
 // Delete removes the key from the key-value data store
 func (b *Batch) Delete(key []byte) (err error) {
-	if b.deleteCache.Add(key, true) {
+	strKey := common.Bytes2Hex(key)
+	if b.deleteCache.Add(strKey, true) {
 		return EvictionWarningErr
 	}
 	return nil
@@ -92,7 +96,7 @@ func (b *Batch) Write() error {
 	puts := make([]blocks.Block, b.putCache.Len())
 	for i, key := range b.putCache.Keys() {
 		val, _ := b.putCache.Get(key) // don't need to check "ok"s, the key is known and val is always []byte
-		b, err := NewBlock(key.([]byte), val.([]byte))
+		b, err := NewBlock(common.Hex2Bytes(key.(string)), val.([]byte))
 		if err != nil {
 			return err
 		}
@@ -102,7 +106,8 @@ func (b *Batch) Write() error {
 		return err
 	}
 	for _, key := range b.deleteCache.Keys() {
-		c, err := Keccak256ToCid(key.([]byte))
+		// we are using state codec because we don't know the codec and at this level the codec doesn't matter, the datastore key is multihash-only derived
+		c, err := Keccak256ToCid(common.Hex2Bytes(key.(string)), cid.EthStateTrie)
 		if err != nil {
 			return err
 		}

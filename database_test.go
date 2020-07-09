@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package pgipfsethdb_test
+package ipfsethdb_test
 
 import (
 	"math/big"
@@ -22,32 +22,26 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/jmoiron/sqlx"
+	"github.com/ipfs/go-blockservice"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	pgipfsethdb "github.com/vulcanize/ipfs-ethdb/postgres"
+	ipfsethdb "github.com/vulcanize/ipfs-ethdb"
 )
 
 var (
 	database     ethdb.Database
-	db           *sqlx.DB
+	blockService blockservice.BlockService
 	err          error
 	testHeader   = types.Header{Number: big.NewInt(1337)}
 	testValue, _ = rlp.EncodeToBytes(testHeader)
 	testEthKey   = testHeader.Hash().Bytes()
-	testMhKey, _ = pgipfsethdb.MultihashKeyFromKeccak256(testEthKey)
 )
 
 var _ = Describe("Database", func() {
 	BeforeEach(func() {
-		db, err = pgipfsethdb.TestDB()
-		Expect(err).ToNot(HaveOccurred())
-		database = pgipfsethdb.NewDatabase(db)
-	})
-	AfterEach(func() {
-		err = pgipfsethdb.ResetTestDB(db)
-		Expect(err).ToNot(HaveOccurred())
+		blockService = ipfsethdb.NewMockBlockservice()
+		database = ipfsethdb.NewDatabase(blockService)
 	})
 
 	Describe("Has", func() {
@@ -57,7 +51,7 @@ var _ = Describe("Database", func() {
 			Expect(has).ToNot(BeTrue())
 		})
 		It("returns true if a key-pair exists in the db", func() {
-			_, err = db.Exec("INSERT into public.blocks (key, data) VALUES ($1, $2)", testMhKey, testValue)
+			err := database.Put(testEthKey, testValue)
 			Expect(err).ToNot(HaveOccurred())
 			has, err := database.Has(testEthKey)
 			Expect(err).ToNot(HaveOccurred())
@@ -69,10 +63,10 @@ var _ = Describe("Database", func() {
 		It("throws an err if the key-pair doesn't exist in the db", func() {
 			_, err = database.Get(testEthKey)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
+			Expect(err.Error()).To(ContainSubstring("block not found"))
 		})
 		It("returns the value associated with the key, if the pair exists", func() {
-			_, err = db.Exec("INSERT into public.blocks (key, data) VALUES ($1, $2)", testMhKey, testValue)
+			err := database.Put(testEthKey, testValue)
 			Expect(err).ToNot(HaveOccurred())
 			val, err := database.Get(testEthKey)
 			Expect(err).ToNot(HaveOccurred())
@@ -84,7 +78,7 @@ var _ = Describe("Database", func() {
 		It("persists the key-value pair in the database", func() {
 			_, err = database.Get(testEthKey)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
+			Expect(err.Error()).To(ContainSubstring("block not found"))
 
 			err = database.Put(testEthKey, testValue)
 			Expect(err).ToNot(HaveOccurred())
@@ -106,7 +100,7 @@ var _ = Describe("Database", func() {
 			Expect(err).ToNot(HaveOccurred())
 			_, err = database.Get(testEthKey)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
+			Expect(err.Error()).To(ContainSubstring("block not found"))
 		})
 	})
 })

@@ -1,4 +1,4 @@
-module github.com/vulcanize/pg-ipfs-ethdb
+module github.com/vulcanize/ipfs-ethdb
 
 go 1.13
 
@@ -10,6 +10,7 @@ require (
 	github.com/ipfs/go-cid v0.0.5
 	github.com/ipfs/go-ipfs-blockstore v1.0.0
 	github.com/ipfs/go-ipfs-ds-help v1.0.0
+	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.0.0
 	github.com/multiformats/go-multihash v0.0.13

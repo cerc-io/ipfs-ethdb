@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package pgipfsethdb_test
+package ipfsethdb_test
 
 import (
 	"math/big"
@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	pgipfsethdb "github.com/vulcanize/ipfs-ethdb/postgres"
+	ipfsethdb "github.com/vulcanize/ipfs-ethdb"
 )
 
 var (
@@ -37,24 +37,20 @@ var (
 
 var _ = Describe("Batch", func() {
 	BeforeEach(func() {
-		db, err = pgipfsethdb.TestDB()
+		blockService = ipfsethdb.NewMockBlockservice()
+		batch, err = ipfsethdb.NewBatch(blockService, 1024)
 		Expect(err).ToNot(HaveOccurred())
-		database = pgipfsethdb.NewDatabase(db)
-		batch = database.NewBatch()
-	})
-	AfterEach(func() {
-		err = pgipfsethdb.ResetTestDB(db)
-		Expect(err).ToNot(HaveOccurred())
+		database = ipfsethdb.NewDatabase(blockService)
 	})
 
 	Describe("Put/Write", func() {
 		It("adds the key-value pair to the batch", func() {
 			_, err = database.Get(testEthKey)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
+			Expect(err.Error()).To(ContainSubstring("block not found"))
 			_, err = database.Get(testEthKey2)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
+			Expect(err.Error()).To(ContainSubstring("block not found"))
 
 			err = batch.Put(testEthKey, testValue)
 			Expect(err).ToNot(HaveOccurred())
@@ -91,10 +87,10 @@ var _ = Describe("Batch", func() {
 
 			_, err = database.Get(testEthKey)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
+			Expect(err.Error()).To(ContainSubstring("block not found"))
 			_, err = database.Get(testEthKey2)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
+			Expect(err.Error()).To(ContainSubstring("block not found"))
 		})
 	})
 

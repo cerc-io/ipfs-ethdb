@@ -19,8 +19,6 @@ package pgipfsethdb
 import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
-
-	"github.com/vulcanize/pg-ipfs-ethdb"
 )
 
 // Batch is the type that satisfies the ethdb.Batch interface for PG-IPFS Ethereum data using a direct Postgres connection
@@ -31,20 +29,23 @@ type Batch struct {
 }
 
 // NewBatch returns a ethdb.Batch interface for PG-IPFS
-func NewBatch(db *sqlx.DB) ethdb.Batch {
-	return &Batch{
+//
+func NewBatch(db *sqlx.DB, tx *sqlx.Tx) ethdb.Batch {
+	b := &Batch{
 		db: db,
+		tx: tx,
 	}
+	if tx == nil {
+		b.Reset()
+	}
+	return b
 }
 
 // Put satisfies the ethdb.Batch interface
 // Put inserts the given value into the key-value data store
 // Key is expected to be the keccak256 hash of value
 func (b *Batch) Put(key []byte, value []byte) (err error) {
-	if b.tx == nil {
-		b.Reset()
-	}
-	mhKey, err := ipfsethdb.MultihashKeyFromKeccak256(key)
+	mhKey, err := MultihashKeyFromKeccak256(key)
 	if err != nil {
 		return err
 	}
@@ -58,10 +59,7 @@ func (b *Batch) Put(key []byte, value []byte) (err error) {
 // Delete satisfies the ethdb.Batch interface
 // Delete removes the key from the key-value data store
 func (b *Batch) Delete(key []byte) (err error) {
-	if b.tx == nil {
-		b.Reset()
-	}
-	mhKey, err := ipfsethdb.MultihashKeyFromKeccak256(key)
+	mhKey, err := MultihashKeyFromKeccak256(key)
 	if err != nil {
 		return err
 	}

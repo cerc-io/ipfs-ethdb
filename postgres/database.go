@@ -23,8 +23,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
-
-	"github.com/vulcanize/pg-ipfs-ethdb"
 )
 
 var errNotSupported = errors.New("this operation is not supported")
@@ -59,7 +57,7 @@ func NewDatabase(db *sqlx.DB) ethdb.Database {
 // Has satisfies the ethdb.KeyValueReader interface
 // Has retrieves if a key is present in the key-value data store
 func (d *Database) Has(key []byte) (bool, error) {
-	mhKey, err := ipfsethdb.MultihashKeyFromKeccak256(key)
+	mhKey, err := MultihashKeyFromKeccak256(key)
 	if err != nil {
 		return false, err
 	}
@@ -70,7 +68,7 @@ func (d *Database) Has(key []byte) (bool, error) {
 // Get satisfies the ethdb.KeyValueReader interface
 // Get retrieves the given key if it's present in the key-value data store
 func (d *Database) Get(key []byte) ([]byte, error) {
-	mhKey, err := ipfsethdb.MultihashKeyFromKeccak256(key)
+	mhKey, err := MultihashKeyFromKeccak256(key)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +80,7 @@ func (d *Database) Get(key []byte) ([]byte, error) {
 // Put inserts the given value into the key-value data store
 // Key is expected to be the keccak256 hash of value
 func (d *Database) Put(key []byte, value []byte) error {
-	mhKey, err := ipfsethdb.MultihashKeyFromKeccak256(key)
+	mhKey, err := MultihashKeyFromKeccak256(key)
 	if err != nil {
 		return err
 	}
@@ -93,7 +91,7 @@ func (d *Database) Put(key []byte, value []byte) error {
 // Delete satisfies the ethdb.KeyValueWriter interface
 // Delete removes the key from the key-value data store
 func (d *Database) Delete(key []byte) error {
-	mhKey, err := ipfsethdb.MultihashKeyFromKeccak256(key)
+	mhKey, err := MultihashKeyFromKeccak256(key)
 	if err != nil {
 		return err
 	}
