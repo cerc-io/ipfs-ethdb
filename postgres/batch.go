@@ -29,7 +29,6 @@ type Batch struct {
 }
 
 // NewBatch returns a ethdb.Batch interface for PG-IPFS
-//
 func NewBatch(db *sqlx.DB, tx *sqlx.Tx) ethdb.Batch {
 	b := &Batch{
 		db: db,

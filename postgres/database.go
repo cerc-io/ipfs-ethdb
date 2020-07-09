@@ -183,7 +183,7 @@ func (d *Database) Compact(start []byte, limit []byte) error {
 // NewBatch creates a write-only database that buffers changes to its host db
 // until a final write is called
 func (d *Database) NewBatch() ethdb.Batch {
-	return NewBatch(d.db)
+	return NewBatch(d.db, nil)
 }
 
 // NewIterator satisfies the ethdb.Iteratee interface
