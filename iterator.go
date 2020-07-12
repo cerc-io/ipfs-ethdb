@@ -18,7 +18,6 @@ package ipfsethdb
 
 import (
 	"context"
-	"github.com/ipfs/go-cid/_rsrch/cidiface"
 
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ipfs/go-blockservice"
@@ -74,7 +73,7 @@ func (i *Iterator) Key() []byte {
 // and its contents may change on the next call to Next
 func (i *Iterator) Value() []byte {
 	// we are using state codec because we don't know the codec and at this level the codec doesn't matter, the datastore key is multihash-only derived
-	c, err := Keccak256ToCid(i.currentKey, cid.EthStateTrie)
+	c, err := Keccak256ToCid(i.currentKey, stateTrieCodec)
 	if err != nil {
 		i.err = err
 		return nil

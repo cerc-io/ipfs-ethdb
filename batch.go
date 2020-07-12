@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/golang-lru"
 	"github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-cid/_rsrch/cidiface"
 )
 
 var (
@@ -107,7 +106,7 @@ func (b *Batch) Write() error {
 	}
 	for _, key := range b.deleteCache.Keys() {
 		// we are using state codec because we don't know the codec and at this level the codec doesn't matter, the datastore key is multihash-only derived
-		c, err := Keccak256ToCid(common.Hex2Bytes(key.(string)), cid.EthStateTrie)
+		c, err := Keccak256ToCid(common.Hex2Bytes(key.(string)), stateTrieCodec)
 		if err != nil {
 			return err
 		}
