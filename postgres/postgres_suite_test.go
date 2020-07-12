@@ -1,5 +1,5 @@
 // VulcanizeDB
-// Copyright © 2020 Vulcanize
+// Copyright © 2019 Vulcanize
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package ipfsethdb
+package pgipfsethdb_test
 
 import (
 	"testing"
@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestIPFSETHDB(t *testing.T) {
+func TestPGIPFSETHDB(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "IPFS ethdb test")
+	RunSpecs(t, "PG-IPFS ethdb test")
 }
