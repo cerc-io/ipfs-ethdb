@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/ipfs/go-cid/_rsrch/cidiface"
 	"strconv"
 	"strings"
 
@@ -29,8 +28,9 @@ import (
 )
 
 var (
-	defaultBatchCapacity = 1024
-	errNotSupported      = errors.New("this operation is not supported")
+	stateTrieCodec       uint64 = 0x96
+	defaultBatchCapacity        = 1024
+	errNotSupported             = errors.New("this operation is not supported")
 )
 
 // Database is the type that satisfies the ethdb.Database and ethdb.KeyValueStore interfaces for IPFS Ethereum data
@@ -59,7 +59,7 @@ func NewDatabase(bs blockservice.BlockService) ethdb.Database {
 // This only operates on the local blockstore not through the exchange
 func (d *Database) Has(key []byte) (bool, error) {
 	// we are using state codec because we don't know the codec and at this level the codec doesn't matter, the datastore key is multihash-only derived
-	c, err := Keccak256ToCid(key, cid.EthStateTrie)
+	c, err := Keccak256ToCid(key, stateTrieCodec)
 	if err != nil {
 		return false, err
 	}
@@ -70,7 +70,7 @@ func (d *Database) Has(key []byte) (bool, error) {
 // Get retrieves the given key if it's present in the key-value data store
 func (d *Database) Get(key []byte) ([]byte, error) {
 	// we are using state codec because we don't know the codec and at this level the codec doesn't matter, the datastore key is multihash-only derived
-	c, err := Keccak256ToCid(key, cid.EthStateTrie)
+	c, err := Keccak256ToCid(key, stateTrieCodec)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (d *Database) Put(key []byte, value []byte) error {
 // Delete removes the key from the key-value data store
 func (d *Database) Delete(key []byte) error {
 	// we are using state codec because we don't know the codec and at this level the codec doesn't matter, the datastore key is multihash-only derived
-	c, err := Keccak256ToCid(key, cid.EthStateTrie)
+	c, err := Keccak256ToCid(key, stateTrieCodec)
 	if err != nil {
 		return err
 	}
