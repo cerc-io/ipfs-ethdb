@@ -14,12 +14,11 @@ employ it as you would the blockservice-based ethdbs.
 package main
 
 import (
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/state/snapshot"
-	"github.com/ethereum/go-ethereum/trie"
-	"github.com/jmoiron/sqlx"
-	"github.com/vulcanize/ipfs-ethdb/postgres"
+    "github.com/ethereum/go-ethereum/common"
+    "github.com/ethereum/go-ethereum/core/state"
+    "github.com/ethereum/go-ethereum/trie"
+    "github.com/jmoiron/sqlx"
+    "github.com/vulcanize/ipfs-ethdb/postgres"
 )
 
 func main() {

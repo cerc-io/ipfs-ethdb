@@ -41,21 +41,21 @@ go-ethereum trie.NodeIterator and state.NodeIterator can be constructed from the
 package main
 
 import (
-	"context"
+    "context"
 	
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/trie"
-	"github.com/ipfs/go-blockservice"
+    "github.com/ethereum/go-ethereum/common"
+    "github.com/ethereum/go-ethereum/core/state"
+    "github.com/ethereum/go-ethereum/trie"
+    "github.com/ipfs/go-blockservice"
     "github.com/ipfs/go-ipfs/core"
     "github.com/ipfs/go-ipfs/repo/fsrepo"
-	"github.com/jmoiron/sqlx"
-	"github.com/vulcanize/ipfs-ethdb"
+    "github.com/jmoiron/sqlx"
+    "github.com/vulcanize/ipfs-ethdb"
 )
 
 func main() {
-	// errors are ignored for brevity
-	ipfsPath := "~/.ipfs"
+    // errors are ignored for brevity
+    ipfsPath := "~/.ipfs"
     r, _ := fsrepo.Open(ipfsPath)
     ctx := context.Background()
     cfg := &core.BuildCfg{
@@ -76,6 +76,8 @@ func main() {
     // do stuff with the statedb node iterator
 }
 ```
+
+[Types are also available](./postgres/doc.md) for interfacing directly with the data stored in an IPFS-backing Postgres database
 
 ## Maintainers
 @vulcanize
