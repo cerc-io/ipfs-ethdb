@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
 )
@@ -28,11 +30,12 @@ import (
 var errNotSupported = errors.New("this operation is not supported")
 
 var (
-	hasPgStr    = "SELECT exists(select 1 from public.blocks WHERE key = $1)"
-	getPgStr    = "SELECT data FROM public.blocks WHERE key = $1"
-	putPgStr    = "INSERT INTO public.blocks (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING"
-	deletePgStr = "DELETE FROM public.blocks WHERE key = $1"
-	dbSizePgStr = "SELECT pg_database_size(current_database())"
+	hasPgStr         = "SELECT exists(select 1 from eth.key_preimages WHERE eth_key = $1)"
+	getPgStr         = "SELECT data FROM public.blocks INNER JOIN eth.key_preimages ON (ipfs_key = blocks.key) WHERE eth_key = $1"
+	putPgStr         = "INSERT INTO public.blocks (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING"
+	putPreimagePgStr = "INSERT INTO eth.key_preimages (eth_key, ipfs_key) VALUES ($1, $2) ON CONFLICT (eth_key) DO NOTHING"
+	deletePgStr      = "DELETE FROM public.blocks USING eth.key_preimages WHERE ipfs_key = blocks.key AND eth_key = $1"
+	dbSizePgStr      = "SELECT pg_database_size(current_database())"
 )
 
 // Database is the type that satisfies the ethdb.Database and ethdb.KeyValueStore interfaces for PG-IPFS Ethereum data using a direct Postgres connection
@@ -56,46 +59,54 @@ func NewDatabase(db *sqlx.DB) ethdb.Database {
 
 // Has satisfies the ethdb.KeyValueReader interface
 // Has retrieves if a key is present in the key-value data store
+// Has uses the eth.key_preimages table
 func (d *Database) Has(key []byte) (bool, error) {
-	mhKey, err := MultihashKeyFromKeccak256(key)
-	if err != nil {
-		return false, err
-	}
 	var exists bool
-	return exists, d.db.Get(&exists, hasPgStr, mhKey)
+	return exists, d.db.Get(&exists, hasPgStr, key)
 }
 
 // Get satisfies the ethdb.KeyValueReader interface
 // Get retrieves the given key if it's present in the key-value data store
+// Get uses the eth.key_preimages table
 func (d *Database) Get(key []byte) ([]byte, error) {
-	mhKey, err := MultihashKeyFromKeccak256(key)
-	if err != nil {
-		return nil, err
-	}
 	var data []byte
-	return data, d.db.Get(&data, getPgStr, mhKey)
+	return data, d.db.Get(&data, getPgStr, key)
 }
 
 // Put satisfies the ethdb.KeyValueWriter interface
 // Put inserts the given value into the key-value data store
 // Key is expected to be the keccak256 hash of value
+// Put inserts the keccak256 key into the eth.key_preimages table
 func (d *Database) Put(key []byte, value []byte) error {
 	mhKey, err := MultihashKeyFromKeccak256(key)
 	if err != nil {
 		return err
 	}
-	_, err = d.db.Exec(putPgStr, mhKey, value)
+	tx, err := d.db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			if err := tx.Rollback(); err != nil {
+				logrus.Error(err)
+			}
+		} else {
+			err = tx.Commit()
+		}
+	}()
+	if _, err = tx.Exec(putPgStr, mhKey, value); err != nil {
+		return err
+	}
+	_, err = tx.Exec(putPreimagePgStr, key, mhKey)
 	return err
 }
 
 // Delete satisfies the ethdb.KeyValueWriter interface
 // Delete removes the key from the key-value data store
+// Delete uses the eth.key_preimages table
 func (d *Database) Delete(key []byte) error {
-	mhKey, err := MultihashKeyFromKeccak256(key)
-	if err != nil {
-		return err
-	}
-	_, err = d.db.Exec(deletePgStr, mhKey)
+	_, err := d.db.Exec(deletePgStr, key)
 	return err
 }
 

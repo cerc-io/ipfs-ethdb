@@ -16,4 +16,5 @@ require (
 	github.com/multiformats/go-multihash v0.0.13
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
+	github.com/sirupsen/logrus v1.6.0
 )

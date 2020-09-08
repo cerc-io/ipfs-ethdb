@@ -51,6 +51,9 @@ func (b *Batch) Put(key []byte, value []byte) (err error) {
 	if _, err = b.tx.Exec(putPgStr, mhKey, value); err != nil {
 		return err
 	}
+	if _, err = b.tx.Exec(putPreimagePgStr, key, mhKey); err != nil {
+		return err
+	}
 	b.valueSize += len(value)
 	return nil
 }
@@ -58,11 +61,7 @@ func (b *Batch) Put(key []byte, value []byte) (err error) {
 // Delete satisfies the ethdb.Batch interface
 // Delete removes the key from the key-value data store
 func (b *Batch) Delete(key []byte) (err error) {
-	mhKey, err := MultihashKeyFromKeccak256(key)
-	if err != nil {
-		return err
-	}
-	_, err = b.tx.Exec(deletePgStr, mhKey)
+	_, err = b.tx.Exec(deletePgStr, key)
 	return err
 }
 
