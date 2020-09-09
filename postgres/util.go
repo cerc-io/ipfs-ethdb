@@ -47,6 +47,8 @@ func DatastoreKeyFromGethKey(h []byte) (string, error) {
 	case Preimage:
 		return MultihashKeyFromKeccak256(keyComponents[1])
 	case Prefixed, Suffixed:
+		// This data is not mapped by hash => content by geth, store it using the prefixed/suffixed key directly
+		// I.e. the public.blocks datastore key == the hex representation of the geth key
 		return common.Bytes2Hex(h), nil
 	default:
 		return "", fmt.Errorf("invalid formatting of database key: %x", h)
