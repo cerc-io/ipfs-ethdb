@@ -59,6 +59,8 @@ var _ = Describe("Database", func() {
 		It("returns true if a key-pair exists in the db", func() {
 			_, err = db.Exec("INSERT into public.blocks (key, data) VALUES ($1, $2)", testMhKey, testValue)
 			Expect(err).ToNot(HaveOccurred())
+			_, err = db.Exec("INSERT into eth.key_preimages (eth_key, ipfs_key) VALUES ($1, $2)", testEthKey, testMhKey)
+			Expect(err).ToNot(HaveOccurred())
 			has, err := database.Has(testEthKey)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(has).To(BeTrue())
@@ -73,6 +75,8 @@ var _ = Describe("Database", func() {
 		})
 		It("returns the value associated with the key, if the pair exists", func() {
 			_, err = db.Exec("INSERT into public.blocks (key, data) VALUES ($1, $2)", testMhKey, testValue)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = db.Exec("INSERT into eth.key_preimages (eth_key, ipfs_key) VALUES ($1, $2)", testEthKey, testMhKey)
 			Expect(err).ToNot(HaveOccurred())
 			val, err := database.Get(testEthKey)
 			Expect(err).ToNot(HaveOccurred())
