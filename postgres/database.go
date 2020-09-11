@@ -29,11 +29,11 @@ import (
 
 var errNotSupported = errors.New("this operation is not supported")
 
-var (
+const (
 	hasPgStr         = "SELECT exists(select 1 from eth.key_preimages WHERE eth_key = $1)"
 	getPgStr         = "SELECT data FROM public.blocks INNER JOIN eth.key_preimages ON (ipfs_key = blocks.key) WHERE eth_key = $1"
 	putPgStr         = "INSERT INTO public.blocks (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING"
-	putPreimagePgStr = "INSERT INTO eth.key_preimages (eth_key, ipfs_key) VALUES ($1, $2) ON CONFLICT (eth_key) DO UPDATE SET ipfs_key = $2"
+	putPreimagePgStr = "INSERT INTO eth.key_preimages (eth_key, ipfs_key, prefix) VALUES ($1, $2, $3) ON CONFLICT (eth_key) DO UPDATE SET (ipfs_key, prefix) = ($2, $3)"
 	deletePgStr      = "DELETE FROM public.blocks USING eth.key_preimages WHERE ipfs_key = blocks.key AND eth_key = $1"
 	dbSizePgStr      = "SELECT pg_database_size(current_database())"
 )
@@ -78,7 +78,7 @@ func (d *Database) Get(key []byte) ([]byte, error) {
 // Key is expected to be the keccak256 hash of value
 // Put inserts the keccak256 key into the eth.key_preimages table
 func (d *Database) Put(key []byte, value []byte) error {
-	dsKey, err := DatastoreKeyFromGethKey(key)
+	dsKey, prefix, err := DatastoreKeyFromGethKey(key)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (d *Database) Put(key []byte, value []byte) error {
 	if _, err = tx.Exec(putPgStr, dsKey, value); err != nil {
 		return err
 	}
-	_, err = tx.Exec(putPreimagePgStr, key, dsKey)
+	_, err = tx.Exec(putPreimagePgStr, key, dsKey, prefix)
 	return err
 }
 
@@ -200,20 +200,20 @@ func (d *Database) NewBatch() ethdb.Batch {
 // NewIterator creates a binary-alphabetical iterator over the entire keyspace
 // contained within the key-value database.
 func (d *Database) NewIterator() ethdb.Iterator {
-	return NewIterator([]byte{}, []byte{}, d.db)
+	return NewIterator(nil, nil, d.db)
 }
 
 // NewIteratorWithStart creates a binary-alphabetical iterator over a subset of
 // database content starting at a particular initial key (or after, if it does
 // not exist).
 func (d *Database) NewIteratorWithStart(start []byte) ethdb.Iterator {
-	return NewIterator(start, []byte{}, d.db)
+	return NewIterator(start, nil, d.db)
 }
 
 // NewIteratorWithPrefix creates a binary-alphabetical iterator over a subset
 // of database content with a particular key prefix.
 func (d *Database) NewIteratorWithPrefix(prefix []byte) ethdb.Iterator {
-	return NewIterator([]byte{}, prefix, d.db)
+	return NewIterator(nil, prefix, d.db)
 }
 
 // Close satisfies the io.Closer interface

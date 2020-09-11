@@ -44,14 +44,14 @@ func NewBatch(db *sqlx.DB, tx *sqlx.Tx) ethdb.Batch {
 // Put inserts the given value into the key-value data store
 // Key is expected to be the keccak256 hash of value
 func (b *Batch) Put(key []byte, value []byte) (err error) {
-	dsKey, err := DatastoreKeyFromGethKey(key)
+	dsKey, prefix, err := DatastoreKeyFromGethKey(key)
 	if err != nil {
 		return err
 	}
 	if _, err = b.tx.Exec(putPgStr, dsKey, value); err != nil {
 		return err
 	}
-	if _, err = b.tx.Exec(putPreimagePgStr, key, dsKey); err != nil {
+	if _, err = b.tx.Exec(putPreimagePgStr, key, dsKey, prefix); err != nil {
 		return err
 	}
 	b.valueSize += len(value)
@@ -74,6 +74,7 @@ func (b *Batch) ValueSize() int {
 
 // Write satisfies the ethdb.Batch interface
 // Write flushes any accumulated data to disk
+// Reset should be called after every write
 func (b *Batch) Write() error {
 	if b.tx == nil {
 		return nil
