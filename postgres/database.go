@@ -33,7 +33,7 @@ const (
 	hasPgStr         = "SELECT exists(select 1 from eth.key_preimages WHERE eth_key = $1)"
 	getPgStr         = "SELECT data FROM public.blocks INNER JOIN eth.key_preimages ON (ipfs_key = blocks.key) WHERE eth_key = $1"
 	putPgStr         = "INSERT INTO public.blocks (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING"
-	putPreimagePgStr = "INSERT INTO eth.key_preimages (eth_key, ipfs_key) VALUES ($1, $2) ON CONFLICT (eth_key) DO UPDATE SET ipfs_key = $2"
+	putPreimagePgStr = "INSERT INTO eth.key_preimages (eth_key, ipfs_key, prefix) VALUES ($1, $2, $3) ON CONFLICT (eth_key) DO UPDATE SET (ipfs_key, prefix) = ($2, $3)"
 	deletePgStr      = "DELETE FROM public.blocks USING eth.key_preimages WHERE ipfs_key = blocks.key AND eth_key = $1"
 	dbSizePgStr      = "SELECT pg_database_size(current_database())"
 )
@@ -78,7 +78,7 @@ func (d *Database) Get(key []byte) ([]byte, error) {
 // Key is expected to be the keccak256 hash of value
 // Put inserts the keccak256 key into the eth.key_preimages table
 func (d *Database) Put(key []byte, value []byte) error {
-	dsKey, err := DatastoreKeyFromGethKey(key)
+	dsKey, prefix, err := DatastoreKeyFromGethKey(key)
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (d *Database) Put(key []byte, value []byte) error {
 	if _, err = tx.Exec(putPgStr, dsKey, value); err != nil {
 		return err
 	}
-	_, err = tx.Exec(putPreimagePgStr, key, dsKey)
+	_, err = tx.Exec(putPreimagePgStr, key, dsKey, prefix)
 	return err
 }
 

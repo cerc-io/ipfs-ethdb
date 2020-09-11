@@ -37,21 +37,25 @@ func MultihashKeyFromKeccak256(h []byte) (string, error) {
 }
 
 // DatastoreKeyFromGethKey returns the public.blocks key from the provided geth key
-func DatastoreKeyFromGethKey(h []byte) (string, error) {
+// It also returns the key's prefix, if it has one
+func DatastoreKeyFromGethKey(h []byte) (string, []byte, error) {
 	keyType, keyComponents := ResolveKeyType(h)
 	switch keyType {
 	case Keccak:
-		return MultihashKeyFromKeccak256(h)
+		mhKey, err := MultihashKeyFromKeccak256(h)
+		return mhKey, nil, err
 	case Header:
-		return MultihashKeyFromKeccak256(keyComponents[1])
+		mhKey, err := MultihashKeyFromKeccak256(keyComponents[1])
+		return mhKey, keyComponents[0], err
 	case Preimage:
-		return MultihashKeyFromKeccak256(keyComponents[1])
+		mhKey, err := MultihashKeyFromKeccak256(keyComponents[1])
+		return mhKey, keyComponents[0], err
 	case Prefixed, Suffixed:
 		// This data is not mapped by hash => content by geth, store it using the prefixed/suffixed key directly
 		// I.e. the public.blocks datastore key == the hex representation of the geth key
 		// Alternatively, decompose the data and derive the hash
-		return common.Bytes2Hex(h), nil
+		return common.Bytes2Hex(h), keyComponents[0], nil
 	default:
-		return "", fmt.Errorf("invalid formatting of database key: %x", h)
+		return "", nil, fmt.Errorf("invalid formatting of database key: %x", h)
 	}
 }

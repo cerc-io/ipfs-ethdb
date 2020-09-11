@@ -25,7 +25,12 @@ import (
 const (
 	nextPgStr = `SELECT key, data FROM public.blocks
 				INNER JOIN eth.key_preimages ON (ipfs_key = key)
-				WHERE eth_key > $1 ORDER BY eth_key LIMIT 1`
+				WHERE eth_key > $1
+				ORDER BY eth_key LIMIT 1`
+	nextPgStrWithPrefix = `SELECT key, data FROM public.blocks
+				INNER JOIN eth.key_preimages ON (ipfs_key = key)
+				WHERE eth_key > $1 AND prefix = $2 
+				ORDER BY eth_key LIMIT 1`
 )
 
 type nextModel struct {
@@ -54,6 +59,15 @@ func NewIterator(start, prefix []byte, db *sqlx.DB) ethdb.Iterator {
 // It returns whether the iterator is exhausted
 func (i *Iterator) Next() bool {
 	next := new(nextModel)
+	if i.prefix != nil {
+		if err := i.db.Get(next, nextPgStrWithPrefix, i.currentKey, i.prefix); err != nil {
+			logrus.Errorf("iterator.Next() error: %v", err)
+			i.currentKey, i.currentValue = nil, nil
+			return false
+		}
+		i.currentKey, i.currentValue = next.Key, next.Value
+		return true
+	}
 	if err := i.db.Get(next, nextPgStr, i.currentKey); err != nil {
 		logrus.Errorf("iterator.Next() error: %v", err)
 		i.currentKey, i.currentValue = nil, nil
