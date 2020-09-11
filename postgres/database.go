@@ -29,7 +29,7 @@ import (
 
 var errNotSupported = errors.New("this operation is not supported")
 
-var (
+const (
 	hasPgStr         = "SELECT exists(select 1 from eth.key_preimages WHERE eth_key = $1)"
 	getPgStr         = "SELECT data FROM public.blocks INNER JOIN eth.key_preimages ON (ipfs_key = blocks.key) WHERE eth_key = $1"
 	putPgStr         = "INSERT INTO public.blocks (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING"
