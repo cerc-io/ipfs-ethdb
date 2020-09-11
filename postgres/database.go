@@ -200,20 +200,20 @@ func (d *Database) NewBatch() ethdb.Batch {
 // NewIterator creates a binary-alphabetical iterator over the entire keyspace
 // contained within the key-value database.
 func (d *Database) NewIterator() ethdb.Iterator {
-	return NewIterator([]byte{}, []byte{}, d.db)
+	return NewIterator(nil, nil, d.db)
 }
 
 // NewIteratorWithStart creates a binary-alphabetical iterator over a subset of
 // database content starting at a particular initial key (or after, if it does
 // not exist).
 func (d *Database) NewIteratorWithStart(start []byte) ethdb.Iterator {
-	return NewIterator(start, []byte{}, d.db)
+	return NewIterator(start, nil, d.db)
 }
 
 // NewIteratorWithPrefix creates a binary-alphabetical iterator over a subset
 // of database content with a particular key prefix.
 func (d *Database) NewIteratorWithPrefix(prefix []byte) ethdb.Iterator {
-	return NewIterator([]byte{}, prefix, d.db)
+	return NewIterator(nil, prefix, d.db)
 }
 
 // Close satisfies the io.Closer interface

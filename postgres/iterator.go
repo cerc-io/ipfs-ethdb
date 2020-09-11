@@ -19,15 +19,17 @@ package pgipfsethdb
 import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
-	"github.com/sirupsen/logrus"
 )
 
 const (
-	nextPgStr = `SELECT key, data FROM public.blocks
+	initPgStr = `SELECT eth_key, data FROM public.blocks
+				INNER JOIN eth.key_preimages ON (ipfs_key = key)
+				WHERE eth_key = $1`
+	nextPgStr = `SELECT eth_key, data FROM public.blocks
 				INNER JOIN eth.key_preimages ON (ipfs_key = key)
 				WHERE eth_key > $1
 				ORDER BY eth_key LIMIT 1`
-	nextPgStrWithPrefix = `SELECT key, data FROM public.blocks
+	nextPgStrWithPrefix = `SELECT eth_key, data FROM public.blocks
 				INNER JOIN eth.key_preimages ON (ipfs_key = key)
 				WHERE eth_key > $1 AND prefix = $2 
 				ORDER BY eth_key LIMIT 1`
@@ -43,6 +45,7 @@ type Iterator struct {
 	db                               *sqlx.DB
 	currentKey, prefix, currentValue []byte
 	err                              error
+	init                             bool
 }
 
 // NewIterator returns an ethdb.Iterator interface for PG-IPFS
@@ -51,6 +54,7 @@ func NewIterator(start, prefix []byte, db *sqlx.DB) ethdb.Iterator {
 		db:         db,
 		prefix:     prefix,
 		currentKey: start,
+		init:       start != nil,
 	}
 }
 
@@ -59,21 +63,24 @@ func NewIterator(start, prefix []byte, db *sqlx.DB) ethdb.Iterator {
 // It returns whether the iterator is exhausted
 func (i *Iterator) Next() bool {
 	next := new(nextModel)
-	if i.prefix != nil {
-		if err := i.db.Get(next, nextPgStrWithPrefix, i.currentKey, i.prefix); err != nil {
-			logrus.Errorf("iterator.Next() error: %v", err)
-			i.currentKey, i.currentValue = nil, nil
+	if i.init {
+		i.init = false
+		if err := i.db.Get(next, initPgStr, i.currentKey); err != nil {
+			i.currentKey, i.currentValue, i.err = nil, nil, err
 			return false
 		}
-		i.currentKey, i.currentValue = next.Key, next.Value
-		return true
+	} else if i.prefix != nil {
+		if err := i.db.Get(next, nextPgStrWithPrefix, i.currentKey, i.prefix); err != nil {
+			i.currentKey, i.currentValue, i.err = nil, nil, err
+			return false
+		}
+	} else {
+		if err := i.db.Get(next, nextPgStr, i.currentKey); err != nil {
+			i.currentKey, i.currentValue, i.err = nil, nil, err
+			return false
+		}
 	}
-	if err := i.db.Get(next, nextPgStr, i.currentKey); err != nil {
-		logrus.Errorf("iterator.Next() error: %v", err)
-		i.currentKey, i.currentValue = nil, nil
-		return false
-	}
-	i.currentKey, i.currentValue = next.Key, next.Value
+	i.currentKey, i.currentValue, i.err = next.Key, next.Value, nil
 	return true
 }
 
@@ -104,5 +111,5 @@ func (i *Iterator) Value() []byte {
 // Release releases associated resources
 // Release should always succeed and can be called multiple times without causing error
 func (i *Iterator) Release() {
-	i.db.Close()
+	i.db, i.currentKey, i.currentValue, i.err, i.prefix = nil, nil, nil, nil, nil
 }
