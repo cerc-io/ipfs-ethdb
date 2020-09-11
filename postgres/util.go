@@ -17,9 +17,11 @@
 package pgipfsethdb
 
 import (
+	"fmt"
+
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ipfs/go-ipfs-blockstore"
 	"github.com/ipfs/go-ipfs-ds-help"
-	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" //postgres driver
 	"github.com/multiformats/go-multihash"
 )
@@ -34,16 +36,22 @@ func MultihashKeyFromKeccak256(h []byte) (string, error) {
 	return blockstore.BlockPrefix.String() + dbKey.String(), nil
 }
 
-// TestDB connect to the testing database
-// it assumes the database has the IPFS public.blocks table present
-// DO NOT use a production db for the test db, as it will remove all contents of the public.blocks table
-func TestDB() (*sqlx.DB, error) {
-	connectStr := "postgresql://localhost:5432/vulcanize_testing?sslmode=disable"
-	return sqlx.Connect("postgres", connectStr)
-}
+// DatastoreKeyFromGethKey returns the public.blocks key from the provided geth key
+func DatastoreKeyFromGethKey(h []byte) (string, error) {
+	keyType, keyComponents := ResolveKeyType(h)
+	switch keyType {
+	case Keccak:
+		return MultihashKeyFromKeccak256(h)
+	case Header:
+		return MultihashKeyFromKeccak256(keyComponents[1])
+	case Preimage:
+		return MultihashKeyFromKeccak256(keyComponents[1])
+	case Prefixed, Suffixed:
+		// This data is not mapped by hash => content by geth, store it using the prefixed/suffixed key directly
+		// I.e. the public.blocks datastore key == the hex representation of the geth key
+		return common.Bytes2Hex(h), nil
+	default:
+		return "", fmt.Errorf("invalid formatting of database key: %x", h)
+	}
 
-// ResetTestDB drops all rows in the test db public.blocks table
-func ResetTestDB(db *sqlx.DB) error {
-	_, err := db.Exec("TRUNCATE public.blocks CASCADE")
-	return err
 }

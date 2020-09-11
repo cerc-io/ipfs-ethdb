@@ -33,7 +33,7 @@ func main() {
 
     database := pgipfsethdb.NewDatabase(db)
     stateDatabase := state.NewDatabase(database)
-    stateDB, _ := state.New(common.Hash{}, stateDatabase, nil)
+    stateDB, _ := state.New(common.Hash{}, stateDatabase)
     stateDBNodeIterator := state.NewNodeIterator(stateDB)
     // do stuff with the statedb node iterator
 }
