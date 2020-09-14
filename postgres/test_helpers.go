@@ -16,7 +16,9 @@
 
 package pgipfsethdb
 
-import "github.com/jmoiron/sqlx"
+import (
+	"github.com/jmoiron/sqlx"
+)
 
 // TestDB connect to the testing database
 // it assumes the database has the IPFS public.blocks table present
@@ -28,6 +30,38 @@ func TestDB() (*sqlx.DB, error) {
 
 // ResetTestDB drops all rows in the test db public.blocks table
 func ResetTestDB(db *sqlx.DB) error {
-	_, err := db.Exec("TRUNCATE public.blocks CASCADE")
+	tx, err := db.Beginx()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p)
+		} else if err != nil {
+			tx.Rollback()
+		} else {
+			err = tx.Commit()
+		}
+	}()
+	if _, err := tx.Exec("TRUNCATE public.blocks CASCADE"); err != nil {
+		return err
+	}
+	if _, err := tx.Exec("TRUNCATE eth.key_preimages CASCADE"); err != nil {
+		return err
+	}
+	if _, err := tx.Exec("TRUNCATE eth.ancient_headers CASCADE"); err != nil {
+		return err
+	}
+	if _, err := tx.Exec("TRUNCATE eth.ancient_hashes CASCADE"); err != nil {
+		return err
+	}
+	if _, err := tx.Exec("TRUNCATE eth.ancient_bodies CASCADE"); err != nil {
+		return err
+	}
+	if _, err := tx.Exec("TRUNCATE eth.ancient_receipts CASCADE"); err != nil {
+		return err
+	}
+	_, err = tx.Exec("TRUNCATE eth.ancient_tds CASCADE")
 	return err
 }

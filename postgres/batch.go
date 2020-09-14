@@ -17,22 +17,25 @@
 package pgipfsethdb
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
 )
 
 // Batch is the type that satisfies the ethdb.Batch interface for PG-IPFS Ethereum data using a direct Postgres connection
 type Batch struct {
-	db        *sqlx.DB
-	tx        *sqlx.Tx
-	valueSize int
+	db          *sqlx.DB
+	tx          *sqlx.Tx
+	valueSize   int
+	replayCache map[string][]byte
 }
 
 // NewBatch returns a ethdb.Batch interface for PG-IPFS
 func NewBatch(db *sqlx.DB, tx *sqlx.Tx) ethdb.Batch {
 	b := &Batch{
-		db: db,
-		tx: tx,
+		db:          db,
+		tx:          tx,
+		replayCache: make(map[string][]byte),
 	}
 	if tx == nil {
 		b.Reset()
@@ -55,6 +58,7 @@ func (b *Batch) Put(key []byte, value []byte) (err error) {
 		return err
 	}
 	b.valueSize += len(value)
+	b.replayCache[common.Bytes2Hex(key)] = value
 	return nil
 }
 
@@ -62,7 +66,11 @@ func (b *Batch) Put(key []byte, value []byte) (err error) {
 // Delete removes the key from the key-value data store
 func (b *Batch) Delete(key []byte) (err error) {
 	_, err = b.tx.Exec(deletePgStr, key)
-	return err
+	if err != nil {
+		return err
+	}
+	delete(b.replayCache, common.Bytes2Hex(key))
+	return nil
 }
 
 // ValueSize satisfies the ethdb.Batch interface
@@ -79,13 +87,27 @@ func (b *Batch) Write() error {
 	if b.tx == nil {
 		return nil
 	}
-	return b.tx.Commit()
+	if err := b.tx.Commit(); err != nil {
+		return err
+	}
+	b.replayCache = nil
+	return nil
 }
 
 // Replay satisfies the ethdb.Batch interface
 // Replay replays the batch contents
 func (b *Batch) Replay(w ethdb.KeyValueWriter) error {
-	return errNotSupported
+	if b.tx != nil {
+		b.tx.Rollback()
+		b.tx = nil
+	}
+	for key, value := range b.replayCache {
+		if err := w.Put(common.Hex2Bytes(key), value); err != nil {
+			return err
+		}
+	}
+	b.replayCache = nil
+	return nil
 }
 
 // Reset satisfies the ethdb.Batch interface
@@ -97,5 +119,6 @@ func (b *Batch) Reset() {
 	if err != nil {
 		panic(err)
 	}
+	b.replayCache = make(map[string][]byte)
 	b.valueSize = 0
 }
