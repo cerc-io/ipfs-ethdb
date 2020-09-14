@@ -115,4 +115,30 @@ var _ = Describe("Batch", func() {
 			Expect(size).To(Equal(0))
 		})
 	})
+
+	Describe("Replay", func() {
+		It("returns the size of data in the batch queued for write", func() {
+			err = batch.Put(testKeccakEthKey, testValue)
+			Expect(err).ToNot(HaveOccurred())
+			err = batch.Put(testKeccakEthKey2, testValue2)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = database.Get(testKeccakEthKey)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
+			_, err = database.Get(testKeccakEthKey2)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
+
+			err = batch.Replay(database)
+			Expect(err).ToNot(HaveOccurred())
+
+			val, err := database.Get(testKeccakEthKey)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(val).To(Equal(testValue))
+			val2, err := database.Get(testKeccakEthKey2)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(val2).To(Equal(testValue2))
+		})
+	})
 })
