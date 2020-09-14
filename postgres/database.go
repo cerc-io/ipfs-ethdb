@@ -17,7 +17,6 @@
 package pgipfsethdb
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -26,8 +25,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
 )
-
-var errNotSupported = errors.New("this operation is not supported")
 
 const (
 	hasPgStr         = "SELECT exists(SELECT 1 FROM eth.key_preimages WHERE eth_key = $1)"
