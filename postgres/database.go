@@ -30,7 +30,7 @@ import (
 var errNotSupported = errors.New("this operation is not supported")
 
 const (
-	hasPgStr         = "SELECT exists(select 1 from eth.key_preimages WHERE eth_key = $1)"
+	hasPgStr         = "SELECT exists(SELECT 1 FROM eth.key_preimages WHERE eth_key = $1)"
 	getPgStr         = "SELECT data FROM public.blocks INNER JOIN eth.key_preimages ON (ipfs_key = blocks.key) WHERE eth_key = $1"
 	putPgStr         = "INSERT INTO public.blocks (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING"
 	putPreimagePgStr = "INSERT INTO eth.key_preimages (eth_key, ipfs_key, prefix) VALUES ($1, $2, $3) ON CONFLICT (eth_key) DO UPDATE SET (ipfs_key, prefix) = ($2, $3)"
@@ -40,7 +40,8 @@ const (
 
 // Database is the type that satisfies the ethdb.Database and ethdb.KeyValueStore interfaces for PG-IPFS Ethereum data using a direct Postgres connection
 type Database struct {
-	db *sqlx.DB
+	db        *sqlx.DB
+	ancientTx *sqlx.Tx
 }
 
 // NewKeyValueStore returns a ethdb.KeyValueStore interface for PG-IPFS
@@ -220,46 +221,4 @@ func (d *Database) NewIteratorWithPrefix(prefix []byte) ethdb.Iterator {
 // Close closes the db connection
 func (d *Database) Close() error {
 	return d.db.DB.Close()
-}
-
-// HasAncient satisfies the ethdb.AncientReader interface
-// HasAncient returns an indicator whether the specified data exists in the ancient store
-func (d *Database) HasAncient(kind string, number uint64) (bool, error) {
-	return false, errNotSupported
-}
-
-// Ancient satisfies the ethdb.AncientReader interface
-// Ancient retrieves an ancient binary blob from the append-only immutable files
-func (d *Database) Ancient(kind string, number uint64) ([]byte, error) {
-	return nil, errNotSupported
-}
-
-// Ancients satisfies the ethdb.AncientReader interface
-// Ancients returns the ancient item numbers in the ancient store
-func (d *Database) Ancients() (uint64, error) {
-	return 0, errNotSupported
-}
-
-// AncientSize satisfies the ethdb.AncientReader interface
-// AncientSize returns the ancient size of the specified category
-func (d *Database) AncientSize(kind string) (uint64, error) {
-	return 0, errNotSupported
-}
-
-// AppendAncient satisfies the ethdb.AncientWriter interface
-// AppendAncient injects all binary blobs belong to block at the end of the append-only immutable table files
-func (d *Database) AppendAncient(number uint64, hash, header, body, receipt, td []byte) error {
-	return errNotSupported
-}
-
-// TruncateAncients satisfies the ethdb.AncientWriter interface
-// TruncateAncients discards all but the first n ancient data from the ancient store
-func (d *Database) TruncateAncients(n uint64) error {
-	return errNotSupported
-}
-
-// Sync satisfies the ethdb.AncientWriter interface
-// Sync flushes all in-memory ancient store data to disk
-func (d *Database) Sync() error {
-	return errNotSupported
 }
