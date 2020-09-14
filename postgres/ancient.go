@@ -17,26 +17,27 @@
 package pgipfsethdb
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/sirupsen/logrus"
 )
 
 const (
-	// freezerHeaderTable indicates the name of the freezer header table.
-	freezerHeaderTable = "headers"
+	// FreezerHeaderTable indicates the name of the freezer header table.
+	FreezerHeaderTable = "headers"
 
-	// freezerHashTable indicates the name of the freezer canonical hash table.
-	freezerHashTable = "hashes"
+	// FreezerHashTable indicates the name of the freezer canonical hash table.
+	FreezerHashTable = "hashes"
 
-	// freezerBodiesTable indicates the name of the freezer block body table.
-	freezerBodiesTable = "bodies"
+	// FreezerBodiesTable indicates the name of the freezer block body table.
+	FreezerBodiesTable = "bodies"
 
-	// freezerReceiptTable indicates the name of the freezer receipts table.
-	freezerReceiptTable = "receipts"
+	// FreezerReceiptTable indicates the name of the freezer receipts table.
+	FreezerReceiptTable = "receipts"
 
-	// freezerDifficultyTable indicates the name of the freezer total difficulty table.
-	freezerDifficultyTable = "diffs"
+	// FreezerDifficultyTable indicates the name of the freezer total difficulty table.
+	FreezerDifficultyTable = "diffs"
 
 	// ancient append Postgres statements
 	appendAncientHeaderPgStr   = "INSERT INTO eth.ancient_headers (block_number, header) VALUES ($1, $2) ON CONFLICT (block_number) DO UPDATE SET header = $2"
@@ -78,15 +79,15 @@ const (
 func (d *Database) HasAncient(kind string, number uint64) (bool, error) {
 	var pgStr string
 	switch kind {
-	case freezerHeaderTable:
+	case FreezerHeaderTable:
 		pgStr = hasAncientHeaderPgStr
-	case freezerHashTable:
+	case FreezerHashTable:
 		pgStr = hasAncientHashPgStr
-	case freezerBodiesTable:
+	case FreezerBodiesTable:
 		pgStr = hasAncientBodyPgStr
-	case freezerReceiptTable:
+	case FreezerReceiptTable:
 		pgStr = hasAncientReceiptsPgStr
-	case freezerDifficultyTable:
+	case FreezerDifficultyTable:
 		pgStr = hasAncientTDPgStr
 	default:
 		return false, fmt.Errorf("unexpected ancient kind: %s", kind)
@@ -100,15 +101,15 @@ func (d *Database) HasAncient(kind string, number uint64) (bool, error) {
 func (d *Database) Ancient(kind string, number uint64) ([]byte, error) {
 	var pgStr string
 	switch kind {
-	case freezerHeaderTable:
+	case FreezerHeaderTable:
 		pgStr = getAncientHeaderPgStr
-	case freezerHashTable:
+	case FreezerHashTable:
 		pgStr = getAncientHashPgStr
-	case freezerBodiesTable:
+	case FreezerBodiesTable:
 		pgStr = getAncientBodyPgStr
-	case freezerReceiptTable:
+	case FreezerReceiptTable:
 		pgStr = getAncientReceiptsPgStr
-	case freezerDifficultyTable:
+	case FreezerDifficultyTable:
 		pgStr = getAncientTDPgStr
 	default:
 		return nil, fmt.Errorf("unexpected ancient kind: %s", kind)
@@ -121,7 +122,13 @@ func (d *Database) Ancient(kind string, number uint64) ([]byte, error) {
 // Ancients returns the ancient item numbers in the ancient store
 func (d *Database) Ancients() (uint64, error) {
 	num := new(uint64)
-	return *num, d.db.Get(num, ancientsPgStr)
+	if err := d.db.Get(num, ancientsPgStr); err != nil {
+		if err == sql.ErrNoRows {
+			return 0, nil
+		}
+		return 0, err
+	}
+	return *num, nil
 }
 
 // AncientSize satisfies the ethdb.AncientReader interface
@@ -129,15 +136,15 @@ func (d *Database) Ancients() (uint64, error) {
 func (d *Database) AncientSize(kind string) (uint64, error) {
 	var tableName string
 	switch kind {
-	case freezerHeaderTable:
+	case FreezerHeaderTable:
 		tableName = "eth.ancient_headers"
-	case freezerHashTable:
+	case FreezerHashTable:
 		tableName = "eth.ancient_hashes"
-	case freezerBodiesTable:
+	case FreezerBodiesTable:
 		tableName = "eth.ancient_bodies"
-	case freezerReceiptTable:
+	case FreezerReceiptTable:
 		tableName = "eth.ancient_receipts"
-	case freezerDifficultyTable:
+	case FreezerDifficultyTable:
 		tableName = "eth.ancient_tds"
 	default:
 		return 0, fmt.Errorf("unexpected ancient kind: %s", kind)
@@ -223,5 +230,9 @@ func (d *Database) Sync() error {
 	if d.ancientTx == nil {
 		return nil
 	}
-	return d.ancientTx.Commit()
+	if err := d.ancientTx.Commit(); err != nil {
+		return err
+	}
+	d.ancientTx = nil
+	return nil
 }

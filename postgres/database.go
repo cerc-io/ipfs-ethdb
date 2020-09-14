@@ -188,7 +188,8 @@ func (d *Database) Stat(property string) (string, error) {
 // Compact satisfies the ethdb.Compacter interface
 // Compact flattens the underlying data store for the given key range
 func (d *Database) Compact(start []byte, limit []byte) error {
-	return errNotSupported
+	// this leveldb functionality doesn't translate to Postgres
+	return nil
 }
 
 // NewBatch satisfies the ethdb.Batcher interface
