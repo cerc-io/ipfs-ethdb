@@ -22,6 +22,7 @@ type KeyType uint
 
 const (
 	Invalid KeyType = iota
+	Static
 	Keccak
 	Prefixed
 	Suffixed
@@ -30,11 +31,11 @@ const (
 )
 
 var (
-	// keyDelineation is used to delineate the key prefixes and suffixes
-	KeyDelineation = []byte("/")
+	// KeyDelineation is used to delineate the key prefixes and suffixes
+	KeyDelineation = []byte("-fix-")
 
-	// numberDelineation is used to delineate the block number encoded in a key
-	NumberDelineation = []byte(":")
+	// NumberDelineation is used to delineate the block number encoded in a key
+	NumberDelineation = []byte("-nmb-")
 
 	// Data item prefixes (use single byte to avoid mixing data types, avoid `i`, used for indexes).
 	HeaderPrefix   = []byte("h")           // headerPrefix + num (uint64 big endian) + hash -> header
@@ -45,8 +46,12 @@ var (
 func ResolveKeyType(key []byte) (KeyType, [][]byte) {
 	sk := bytes.Split(key, KeyDelineation)
 
+	// these heuristics are reliant on the current db key patterns
 	switch len(sk) {
 	case 1:
+		if len(sk[0]) < 32 {
+			return Static, sk
+		}
 		return Keccak, sk
 	case 2:
 		switch prefix := sk[0]; {
