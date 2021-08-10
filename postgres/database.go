@@ -17,12 +17,15 @@
 package pgipfsethdb
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
+	"github.com/mailgun/groupcache/v2"
 )
 
 var errNotSupported = errors.New("this operation is not supported")
@@ -37,21 +40,49 @@ var (
 
 // Database is the type that satisfies the ethdb.Database and ethdb.KeyValueStore interfaces for PG-IPFS Ethereum data using a direct Postgres connection
 type Database struct {
-	db *sqlx.DB
+	db    *sqlx.DB
+	cache *groupcache.Group
+}
+
+type CacheConfig struct {
+	Name           string
+	Size           int
+	ExpiryDuration time.Duration
 }
 
 // NewKeyValueStore returns a ethdb.KeyValueStore interface for PG-IPFS
-func NewKeyValueStore(db *sqlx.DB) ethdb.KeyValueStore {
-	return &Database{
-		db: db,
-	}
+func NewKeyValueStore(db *sqlx.DB, cacheConfig CacheConfig) ethdb.KeyValueStore {
+	database := Database{db: db}
+	database.InitCache(cacheConfig)
+
+	return &database
 }
 
 // NewDatabase returns a ethdb.Database interface for PG-IPFS
-func NewDatabase(db *sqlx.DB) ethdb.Database {
-	return &Database{
-		db: db,
-	}
+func NewDatabase(db *sqlx.DB, cacheConfig CacheConfig) ethdb.Database {
+	database := Database{db: db}
+	database.InitCache(cacheConfig)
+
+	return &database
+}
+
+func (d *Database) InitCache(cacheConfig CacheConfig) {
+	d.cache = groupcache.NewGroup(cacheConfig.Name, int64(cacheConfig.Size), groupcache.GetterFunc(
+		func(_ context.Context, id string, dest groupcache.Sink) error {
+			val, err := d.dbGet(id)
+
+			if err != nil {
+				return err
+			}
+
+			// Set the value in the groupcache, with expiry
+			if err := dest.SetBytes(val, time.Now().Add(cacheConfig.ExpiryDuration)); err != nil {
+				return err
+			}
+
+			return nil
+		},
+	))
 }
 
 // Has satisfies the ethdb.KeyValueReader interface
@@ -65,6 +96,12 @@ func (d *Database) Has(key []byte) (bool, error) {
 	return exists, d.db.Get(&exists, hasPgStr, mhKey)
 }
 
+// Get retrieves the given key if it's present in the key-value data store
+func (d *Database) dbGet(key string) ([]byte, error) {
+	var data []byte
+	return data, d.db.Get(&data, getPgStr, key)
+}
+
 // Get satisfies the ethdb.KeyValueReader interface
 // Get retrieves the given key if it's present in the key-value data store
 func (d *Database) Get(key []byte) ([]byte, error) {
@@ -72,8 +109,12 @@ func (d *Database) Get(key []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
+	defer cancel()
+
 	var data []byte
-	return data, d.db.Get(&data, getPgStr, mhKey)
+	return data, d.cache.Get(ctx, mhKey, groupcache.AllocatingByteSliceSink(&data))
 }
 
 // Put satisfies the ethdb.KeyValueWriter interface
@@ -95,7 +136,17 @@ func (d *Database) Delete(key []byte) error {
 	if err != nil {
 		return err
 	}
+
 	_, err = d.db.Exec(deletePgStr, mhKey)
+	if err != nil {
+		return err
+	}
+
+	// Remove from cache.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
+	defer cancel()
+	err = d.cache.Remove(ctx, mhKey)
+
 	return err
 }
 

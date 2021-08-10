@@ -18,6 +18,7 @@ package pgipfsethdb_test
 
 import (
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -43,7 +44,14 @@ var _ = Describe("Database", func() {
 	BeforeEach(func() {
 		db, err = pgipfsethdb.TestDB()
 		Expect(err).ToNot(HaveOccurred())
-		database = pgipfsethdb.NewDatabase(db)
+
+		cacheConfig := pgipfsethdb.CacheConfig{
+			Name:           "db",
+			Size:           3000000, // 3MB
+			ExpiryDuration: time.Hour,
+		}
+
+		database = pgipfsethdb.NewDatabase(db, cacheConfig)
 	})
 	AfterEach(func() {
 		err = pgipfsethdb.ResetTestDB(db)
