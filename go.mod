@@ -13,7 +13,9 @@ require (
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/lib/pq v1.0.0
+	github.com/mailgun/groupcache/v2 v2.2.1
 	github.com/multiformats/go-multihash v0.0.13
 	github.com/onsi/ginkgo v1.8.0
 	github.com/onsi/gomega v1.5.0
+	google.golang.org/appengine v1.6.7 // indirect
 )
