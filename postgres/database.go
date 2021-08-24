@@ -69,8 +69,6 @@ func NewDatabase(db *sqlx.DB, cacheConfig CacheConfig) *Database {
 func (d *Database) InitCache(cacheConfig CacheConfig) {
 	d.cache = groupcache.NewGroup(cacheConfig.Name, int64(cacheConfig.Size), groupcache.GetterFunc(
 		func(_ context.Context, id string, dest groupcache.Sink) error {
-			fmt.Println("Cache miss, fetching from DB:", id)
-
 			val, err := d.dbGet(id)
 
 			if err != nil {
@@ -118,8 +116,6 @@ func (d *Database) Get(key []byte) ([]byte, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
-
-	fmt.Println("GET request:                 ", mhKey)
 
 	var data []byte
 	return data, d.cache.Get(ctx, mhKey, groupcache.AllocatingByteSliceSink(&data))
