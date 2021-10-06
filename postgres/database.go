@@ -44,6 +44,10 @@ type Database struct {
 	cache *groupcache.Group
 }
 
+func (d *Database) ModifyAncients(f func(ethdb.AncientWriteOp) error) (int64, error) {
+	return 0, errNotSupported
+}
+
 type CacheConfig struct {
 	Name           string
 	Size           int
