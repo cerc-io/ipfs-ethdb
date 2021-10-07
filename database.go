@@ -54,6 +54,10 @@ func NewDatabase(bs blockservice.BlockService) ethdb.Database {
 	}
 }
 
+func (d *Database) ModifyAncients(f func(ethdb.AncientWriteOp) error) (int64, error) {
+	return 0, errNotSupported
+}
+
 // Has satisfies the ethdb.KeyValueReader interface
 // Has retrieves if a key is present in the key-value data store
 // This only operates on the local blockstore not through the exchange
