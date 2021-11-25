@@ -7,17 +7,17 @@ require (
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/ipfs/go-block-format v0.0.2
 	github.com/ipfs/go-blockservice v0.1.3
-	github.com/ipfs/go-cid v0.0.5
-	github.com/ipfs/go-ipfs-blockstore v1.0.0
+	github.com/ipfs/go-cid v0.0.7
+	github.com/ipfs/go-ipfs-blockstore v1.0.1
 	github.com/ipfs/go-ipfs-ds-help v1.0.0
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/jmoiron/sqlx v1.2.0
-	github.com/lib/pq v1.0.0
+	github.com/lib/pq v1.10.2
 	github.com/mailgun/groupcache/v2 v2.2.1
-	github.com/multiformats/go-multihash v0.0.13
+	github.com/multiformats/go-multihash v0.0.14
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
 	google.golang.org/appengine v1.6.7 // indirect
 )
 
-replace github.com/ethereum/go-ethereum v1.10.9 => github.com/vulcanize/go-ethereum v0.0.0-20211120204023-ac6ef33f2ad1
+replace github.com/ethereum/go-ethereum v1.10.9 => github.com/vulcanize/go-ethereum v0.0.0-20211125055606-cd7c58e7f9a2
