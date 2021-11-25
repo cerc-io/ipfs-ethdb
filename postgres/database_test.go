@@ -46,7 +46,7 @@ var _ = Describe("Database", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		cacheConfig := pgipfsethdb.CacheConfig{
-			Name:           "db",
+			Name:           "driver",
 			Size:           3000000, // 3MB
 			ExpiryDuration: time.Hour,
 		}
@@ -59,12 +59,12 @@ var _ = Describe("Database", func() {
 	})
 
 	Describe("Has", func() {
-		It("returns false if a key-pair doesn't exist in the db", func() {
+		It("returns false if a key-pair doesn't exist in the driver", func() {
 			has, err := database.Has(testEthKey)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(has).ToNot(BeTrue())
 		})
-		It("returns true if a key-pair exists in the db", func() {
+		It("returns true if a key-pair exists in the driver", func() {
 			_, err = db.Exec("INSERT into public.blocks (key, data) VALUES ($1, $2)", testMhKey, testValue)
 			Expect(err).ToNot(HaveOccurred())
 			has, err := database.Has(testEthKey)
@@ -74,7 +74,7 @@ var _ = Describe("Database", func() {
 	})
 
 	Describe("Get", func() {
-		It("throws an err if the key-pair doesn't exist in the db", func() {
+		It("throws an err if the key-pair doesn't exist in the driver", func() {
 			_, err = database.Get(testEthKey)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))

@@ -24,7 +24,7 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
-// MultihashKeyFromKeccak256 converts keccak256 hash bytes into a blockstore-prefixed multihash db key string
+// MultihashKeyFromKeccak256 converts keccak256 hash bytes into a blockstore-prefixed multihash driver key string
 func MultihashKeyFromKeccak256(h []byte) (string, error) {
 	mh, err := multihash.Encode(h, multihash.KECCAK_256)
 	if err != nil {
@@ -36,13 +36,13 @@ func MultihashKeyFromKeccak256(h []byte) (string, error) {
 
 // TestDB connect to the testing database
 // it assumes the database has the IPFS public.blocks table present
-// DO NOT use a production db for the test db, as it will remove all contents of the public.blocks table
+// DO NOT use a production driver for the test driver, as it will remove all contents of the public.blocks table
 func TestDB() (*sqlx.DB, error) {
 	connectStr := "postgresql://localhost:5432/vulcanize_testing?sslmode=disable"
 	return sqlx.Connect("postgres", connectStr)
 }
 
-// ResetTestDB drops all rows in the test db public.blocks table
+// ResetTestDB drops all rows in the test driver public.blocks table
 func ResetTestDB(db *sqlx.DB) error {
 	_, err := db.Exec("TRUNCATE public.blocks")
 	return err

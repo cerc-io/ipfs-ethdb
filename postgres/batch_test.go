@@ -42,7 +42,7 @@ var _ = Describe("Batch", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		cacheConfig := pgipfsethdb.CacheConfig{
-			Name:           "db",
+			Name:           "driver",
 			Size:           3000000, // 3MB
 			ExpiryDuration: time.Hour,
 		}

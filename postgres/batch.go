@@ -17,19 +17,21 @@
 package pgipfsethdb
 
 import (
+	"context"
+
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/jmoiron/sqlx"
+	"github.com/ethereum/go-ethereum/statediff/indexer/database/sql"
 )
 
 // Batch is the type that satisfies the ethdb.Batch interface for PG-IPFS Ethereum data using a direct Postgres connection
 type Batch struct {
-	db        *sqlx.DB
-	tx        *sqlx.Tx
+	db        sql.Database
+	tx        sql.Tx
 	valueSize int
 }
 
 // NewBatch returns a ethdb.Batch interface for PG-IPFS
-func NewBatch(db *sqlx.DB, tx *sqlx.Tx) ethdb.Batch {
+func NewBatch(db sql.Database, tx sql.Tx) ethdb.Batch {
 	b := &Batch{
 		db: db,
 		tx: tx,
@@ -48,7 +50,7 @@ func (b *Batch) Put(key []byte, value []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	if _, err = b.tx.Exec(putPgStr, mhKey, value); err != nil {
+	if _, err = b.tx.Exec(context.Background(),putPgStr, mhKey, value); err != nil {
 		return err
 	}
 	b.valueSize += len(value)
@@ -62,7 +64,7 @@ func (b *Batch) Delete(key []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	_, err = b.tx.Exec(deletePgStr, mhKey)
+	_, err = b.tx.Exec(context.Background(),deletePgStr, mhKey)
 	return err
 }
 
@@ -79,7 +81,7 @@ func (b *Batch) Write() error {
 	if b.tx == nil {
 		return nil
 	}
-	return b.tx.Commit()
+	return b.tx.Commit(context.Background())
 }
 
 // Replay satisfies the ethdb.Batch interface
@@ -93,7 +95,7 @@ func (b *Batch) Replay(w ethdb.KeyValueWriter) error {
 // This should be called after every write
 func (b *Batch) Reset() {
 	var err error
-	b.tx, err = b.db.Beginx()
+	b.tx, err = b.db.Begin(context.Background())
 	if err != nil {
 		panic(err)
 	}

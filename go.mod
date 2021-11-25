@@ -19,3 +19,5 @@ require (
 	github.com/onsi/gomega v1.10.1
 	google.golang.org/appengine v1.6.7 // indirect
 )
+
+replace github.com/ethereum/go-ethereum v1.10.9 => github.com/vulcanize/go-ethereum v0.0.0-20211120204023-ac6ef33f2ad1

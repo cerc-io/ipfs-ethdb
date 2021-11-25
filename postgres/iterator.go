@@ -17,8 +17,10 @@
 package pgipfsethdb
 
 import (
+	"context"
+
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/jmoiron/sqlx"
+	"github.com/ethereum/go-ethereum/statediff/indexer/database/sql"
 )
 
 // Iterator is the type that satisfies the ethdb.Iterator interface for PG-IPFS Ethereum data using a direct Postgres connection
@@ -27,15 +29,15 @@ import (
 // This should not be confused with trie.NodeIterator or state.NodeIteraor (which can be constructed
 // from the ethdb.KeyValueStoreand ethdb.Database interfaces)
 type Iterator struct {
-	db                 *sqlx.DB
+	db                 sql.Database
 	currentKey, prefix []byte
 	err                error
 }
 
 // NewIterator returns an ethdb.Iterator interface for PG-IPFS
-func NewIterator(start, prefix []byte, db *sqlx.DB) ethdb.Iterator {
+func NewIterator(start, prefix []byte, driver sql.Database) ethdb.Iterator {
 	return &Iterator{
-		db:         db,
+		db:         driver,
 		prefix:     prefix,
 		currentKey: start,
 	}
@@ -45,7 +47,7 @@ func NewIterator(start, prefix []byte, db *sqlx.DB) ethdb.Iterator {
 // Next moves the iterator to the next key/value pair
 // It returns whether the iterator is exhausted
 func (i *Iterator) Next() bool {
-	// this is complicated by the ipfs db keys not being the keccak256 hashes
+	// this is complicated by the ipfs driver keys not being the keccak256 hashes
 	// go-ethereum usage of this method expects the iteration to occur over keccak256 keys
 	panic("implement me: Next")
 }
@@ -76,7 +78,7 @@ func (i *Iterator) Value() []byte {
 		return nil
 	}
 	var data []byte
-	i.err = i.db.Get(&data, getPgStr, mhKey)
+	i.err = i.db.Get(context.Background(),&data, getPgStr, mhKey)
 	return data
 }
 

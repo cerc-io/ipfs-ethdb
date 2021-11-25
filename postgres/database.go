@@ -20,11 +20,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/jmoiron/sqlx"
+	"github.com/ethereum/go-ethereum/statediff/indexer/database/sql"
 	"github.com/mailgun/groupcache/v2"
 )
 
@@ -40,8 +41,8 @@ var (
 
 // Database is the type that satisfies the ethdb.Database and ethdb.KeyValueStore interfaces for PG-IPFS Ethereum data using a direct Postgres connection
 type Database struct {
-	db    *sqlx.DB
-	cache *groupcache.Group
+	driver sql.Database
+	cache  *groupcache.Group
 }
 
 func (d *Database) ModifyAncients(f func(ethdb.AncientWriteOp) error) (int64, error) {
@@ -55,16 +56,16 @@ type CacheConfig struct {
 }
 
 // NewKeyValueStore returns a ethdb.KeyValueStore interface for PG-IPFS
-func NewKeyValueStore(db *sqlx.DB, cacheConfig CacheConfig) ethdb.KeyValueStore {
-	database := Database{db: db}
+func NewKeyValueStore(db sql.Database, cacheConfig CacheConfig) ethdb.KeyValueStore {
+	database := Database{driver: db}
 	database.InitCache(cacheConfig)
 
 	return &database
 }
 
 // NewDatabase returns a ethdb.Database interface for PG-IPFS
-func NewDatabase(db *sqlx.DB, cacheConfig CacheConfig) *Database {
-	database := Database{db: db}
+func NewDatabase(db sql.Database, cacheConfig CacheConfig) *Database {
+	database := Database{driver: db}
 	database.InitCache(cacheConfig)
 
 	return &database
@@ -101,13 +102,13 @@ func (d *Database) Has(key []byte) (bool, error) {
 		return false, err
 	}
 	var exists bool
-	return exists, d.db.Get(&exists, hasPgStr, mhKey)
+	return exists, d.driver.Get(context.Background(), &exists, hasPgStr, mhKey)
 }
 
 // Get retrieves the given key if it's present in the key-value data store
 func (d *Database) dbGet(key string) ([]byte, error) {
 	var data []byte
-	return data, d.db.Get(&data, getPgStr, key)
+	return data, d.driver.Get(context.Background(),&data, getPgStr, key)
 }
 
 // Get satisfies the ethdb.KeyValueReader interface
@@ -133,7 +134,7 @@ func (d *Database) Put(key []byte, value []byte) error {
 	if err != nil {
 		return err
 	}
-	_, err = d.db.Exec(putPgStr, mhKey, value)
+	_, err = d.driver.Exec(context.Background(),putPgStr, mhKey, value)
 	return err
 }
 
@@ -145,7 +146,7 @@ func (d *Database) Delete(key []byte) error {
 		return err
 	}
 
-	_, err = d.db.Exec(deletePgStr, mhKey)
+	_, err = d.driver.Exec(context.Background(),deletePgStr, mhKey)
 	if err != nil {
 		return err
 	}
@@ -210,23 +211,23 @@ func (d *Database) Stat(property string) (string, error) {
 	switch prop {
 	case Size:
 		var byteSize string
-		return byteSize, d.db.Get(&byteSize, dbSizePgStr)
+		return byteSize, d.driver.Get(context.Background(), &byteSize, dbSizePgStr)
 	case Idle:
-		return string(d.db.Stats().Idle), nil
+		return strconv.FormatInt(d.driver.Stats().Idle(),10), nil
 	case InUse:
-		return string(d.db.Stats().InUse), nil
+		return strconv.FormatInt(d.driver.Stats().InUse(),10), nil
 	case MaxIdleClosed:
-		return string(d.db.Stats().MaxIdleClosed), nil
+		return strconv.FormatInt(d.driver.Stats().MaxIdleClosed(),10), nil
 	case MaxLifetimeClosed:
-		return string(d.db.Stats().MaxLifetimeClosed), nil
+		return strconv.FormatInt(d.driver.Stats().MaxLifetimeClosed(),10), nil
 	case MaxOpenConnections:
-		return string(d.db.Stats().MaxOpenConnections), nil
+		return strconv.FormatInt(d.driver.Stats().MaxOpen(), 10), nil
 	case OpenConnections:
-		return string(d.db.Stats().OpenConnections), nil
+		return strconv.FormatInt(d.driver.Stats().Open(), 10), nil
 	case WaitCount:
-		return string(d.db.Stats().WaitCount), nil
+		return strconv.FormatInt(d.driver.Stats().WaitCount(),10), nil
 	case WaitDuration:
-		return d.db.Stats().WaitDuration.String(), nil
+		return d.driver.Stats().WaitDuration().String(), nil
 	default:
 		return "", fmt.Errorf("unhandled database property")
 	}
@@ -239,10 +240,10 @@ func (d *Database) Compact(start []byte, limit []byte) error {
 }
 
 // NewBatch satisfies the ethdb.Batcher interface
-// NewBatch creates a write-only database that buffers changes to its host db
+// NewBatch creates a write-only database that buffers changes to its host driver
 // until a final write is called
 func (d *Database) NewBatch() ethdb.Batch {
-	return NewBatch(d.db, nil)
+	return NewBatch(d.driver, nil)
 }
 
 // NewIterator satisfies the ethdb.Iteratee interface
@@ -253,13 +254,13 @@ func (d *Database) NewBatch() ethdb.Batch {
 // Note: This method assumes that the prefix is NOT part of the start, so there's
 // no need for the caller to prepend the prefix to the start
 func (d *Database) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
-	return NewIterator(start, prefix, d.db)
+	return NewIterator(start, prefix, d.driver)
 }
 
 // Close satisfies the io.Closer interface
-// Close closes the db connection
+// Close closes the driver connection
 func (d *Database) Close() error {
-	return d.db.DB.Close()
+	return d.driver.Close()
 }
 
 // HasAncient satisfies the ethdb.AncientReader interface
