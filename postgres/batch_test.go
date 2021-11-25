@@ -23,6 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ethereum/go-ethereum/statediff/indexer/database/sql/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -38,11 +39,11 @@ var (
 
 var _ = Describe("Batch", func() {
 	BeforeEach(func() {
-		db, err = pgipfsethdb.TestDB()
+		db, err := postgres.SetupPGXDB()
 		Expect(err).ToNot(HaveOccurred())
 
 		cacheConfig := pgipfsethdb.CacheConfig{
-			Name:           "driver",
+			Name:           "db",
 			Size:           3000000, // 3MB
 			ExpiryDuration: time.Hour,
 		}
