@@ -44,6 +44,6 @@ func TestDB() (*sqlx.DB, error) {
 
 // ResetTestDB drops all rows in the test db public.blocks table
 func ResetTestDB(db *sqlx.DB) error {
-	_, err := db.Exec("TRUNCATE public.blocks")
+	_, err := db.Exec("TRUNCATE public.blocks CASCADE")
 	return err
 }
