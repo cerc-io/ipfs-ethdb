@@ -17,7 +17,7 @@
 package ipfsethdb
 
 import (
-	"github.com/ipfs/go-block-format"
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-cid"
 	_ "github.com/lib/pq" //postgres driver
 	"github.com/multiformats/go-multihash"

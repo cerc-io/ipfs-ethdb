@@ -21,6 +21,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+var _ ethdb.Iterator = &Iterator{}
+
 // Iterator is the type that satisfies the ethdb.Iterator interface for PG-IPFS Ethereum data using a direct Postgres connection
 // Iteratee interface is used in Geth for various tests, trie/sync_bloom.go (for fast sync),
 // rawdb.InspectDatabase, and the new core/state/snapshot features.

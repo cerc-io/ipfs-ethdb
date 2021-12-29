@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -37,6 +38,8 @@ var (
 	deletePgStr = "DELETE FROM public.blocks WHERE key = $1"
 	dbSizePgStr = "SELECT pg_database_size(current_database())"
 )
+
+var _ ethdb.Database = &Database{}
 
 // Database is the type that satisfies the ethdb.Database and ethdb.KeyValueStore interfaces for PG-IPFS Ethereum data using a direct Postgres connection
 type Database struct {
@@ -63,7 +66,7 @@ func NewKeyValueStore(db *sqlx.DB, cacheConfig CacheConfig) ethdb.KeyValueStore 
 }
 
 // NewDatabase returns a ethdb.Database interface for PG-IPFS
-func NewDatabase(db *sqlx.DB, cacheConfig CacheConfig) *Database {
+func NewDatabase(db *sqlx.DB, cacheConfig CacheConfig) ethdb.Database {
 	database := Database{db: db}
 	database.InitCache(cacheConfig)
 
@@ -212,19 +215,19 @@ func (d *Database) Stat(property string) (string, error) {
 		var byteSize string
 		return byteSize, d.db.Get(&byteSize, dbSizePgStr)
 	case Idle:
-		return string(d.db.Stats().Idle), nil
+		return strconv.Itoa(d.db.Stats().Idle), nil
 	case InUse:
-		return string(d.db.Stats().InUse), nil
+		return strconv.Itoa(d.db.Stats().InUse), nil
 	case MaxIdleClosed:
-		return string(d.db.Stats().MaxIdleClosed), nil
+		return strconv.FormatInt(d.db.Stats().MaxIdleClosed, 10), nil
 	case MaxLifetimeClosed:
-		return string(d.db.Stats().MaxLifetimeClosed), nil
+		return strconv.FormatInt(d.db.Stats().MaxLifetimeClosed, 10), nil
 	case MaxOpenConnections:
-		return string(d.db.Stats().MaxOpenConnections), nil
+		return strconv.Itoa(d.db.Stats().MaxOpenConnections), nil
 	case OpenConnections:
-		return string(d.db.Stats().OpenConnections), nil
+		return strconv.Itoa(d.db.Stats().OpenConnections), nil
 	case WaitCount:
-		return string(d.db.Stats().WaitCount), nil
+		return strconv.FormatInt(d.db.Stats().WaitCount, 10), nil
 	case WaitDuration:
 		return d.db.Stats().WaitDuration.String(), nil
 	default:
@@ -292,13 +295,18 @@ func (d *Database) AppendAncient(number uint64, hash, header, body, receipt, td 
 	return errNotSupported
 }
 
-// ReadAncients retrieves multiple items in sequence, starting from the index 'start'.
+// AncientRange retrieves all the items in a range, starting from the index 'start'.
 // It will return
 //  - at most 'count' items,
 //  - at least 1 item (even if exceeding the maxBytes), but will otherwise
 //   return as many items as fit into maxBytes.
-func (d *Database) ReadAncients(kind string, start, count, maxBytes uint64) ([][]byte, error) {
+func (d *Database) AncientRange(kind string, start, count, maxBytes uint64) ([][]byte, error) {
 	return nil, errNotSupported
+}
+
+// ReadAncients applies the provided AncientReader function
+func (d *Database) ReadAncients(fn func(ethdb.AncientReader) error) (err error) {
+	return errNotSupported
 }
 
 // TruncateAncients satisfies the ethdb.AncientWriter interface

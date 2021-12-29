@@ -21,14 +21,16 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/hashicorp/golang-lru"
-	"github.com/ipfs/go-block-format"
+	lru "github.com/hashicorp/golang-lru"
+	blocks "github.com/ipfs/go-block-format"
 	"github.com/ipfs/go-blockservice"
 )
 
 var (
 	EvictionWarningErr = errors.New("warn: batch has exceeded capacity, data has been evicted")
 )
+
+var _ ethdb.Batch = &Batch{}
 
 // Batch is the type that satisfies the ethdb.Batch interface for IPFS Ethereum data using the ipfs blockservice interface
 // This is ipfs-backing-datastore agnostic but must operate through a configured ipfs node (and so is subject to lockfile contention with e.g. an ipfs daemon)

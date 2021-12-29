@@ -33,6 +33,8 @@ var (
 	errNotSupported             = errors.New("this operation is not supported")
 )
 
+var _ ethdb.Database = &Database{}
+
 // Database is the type that satisfies the ethdb.Database and ethdb.KeyValueStore interfaces for IPFS Ethereum data
 // This is ipfs-backing-datastore agnostic but must operate through a configured ipfs node (and so is subject to lockfile contention with e.g. an ipfs daemon)
 // If blockservice block exchange is configured the blockservice can fetch data that are missing locally from IPFS peers
@@ -205,13 +207,18 @@ func (d *Database) AppendAncient(number uint64, hash, header, body, receipt, td 
 	return errNotSupported
 }
 
-// ReadAncients retrieves multiple items in sequence, starting from the index 'start'.
+// AncientRange retrieves all the items in a range, starting from the index 'start'.
 // It will return
 //  - at most 'count' items,
 //  - at least 1 item (even if exceeding the maxBytes), but will otherwise
 //   return as many items as fit into maxBytes.
-func (d *Database) ReadAncients(kind string, start, count, maxBytes uint64) ([][]byte, error) {
+func (d *Database) AncientRange(kind string, start, count, maxBytes uint64) ([][]byte, error) {
 	return nil, errNotSupported
+}
+
+// ReadAncients applies the provided AncientReader function
+func (d *Database) ReadAncients(fn func(ethdb.AncientReader) error) (err error) {
+	return errNotSupported
 }
 
 // TruncateAncients satisfies the ethdb.AncientWriter interface

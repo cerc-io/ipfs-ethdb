@@ -23,6 +23,8 @@ import (
 	"github.com/ipfs/go-blockservice"
 )
 
+var _ ethdb.Iterator = &Iterator{}
+
 // Iterator is the type that satisfies the ethdb.Iterator interface for IPFS Ethereum data
 // Iteratee interface is used in Geth for various tests, trie/sync_bloom.go (for fast sync),
 // rawdb.InspectDatabase, and the new core/state/snapshot features.
