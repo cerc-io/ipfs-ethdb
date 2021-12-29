@@ -21,6 +21,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+var _ ethdb.Batch = &Batch{}
+
 // Batch is the type that satisfies the ethdb.Batch interface for PG-IPFS Ethereum data using a direct Postgres connection
 type Batch struct {
 	db        *sqlx.DB

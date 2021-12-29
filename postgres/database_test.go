@@ -24,6 +24,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/jmoiron/sqlx"
+	"github.com/mailgun/groupcache/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -54,6 +55,7 @@ var _ = Describe("Database", func() {
 		database = pgipfsethdb.NewDatabase(db, cacheConfig)
 	})
 	AfterEach(func() {
+		groupcache.DeregisterGroup("db")
 		err = pgipfsethdb.ResetTestDB(db)
 		Expect(err).ToNot(HaveOccurred())
 	})

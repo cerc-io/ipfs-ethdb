@@ -23,6 +23,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/mailgun/groupcache/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -51,6 +52,7 @@ var _ = Describe("Batch", func() {
 		batch = database.NewBatch()
 	})
 	AfterEach(func() {
+		groupcache.DeregisterGroup("db")
 		err = pgipfsethdb.ResetTestDB(db)
 		Expect(err).ToNot(HaveOccurred())
 	})
