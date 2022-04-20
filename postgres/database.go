@@ -248,6 +248,12 @@ func (d *Database) NewBatch() ethdb.Batch {
 	return NewBatch(d.db, nil)
 }
 
+// NewBatchWithSize satisfies the ethdb.Batcher interface.
+// NewBatchWithSize creates a write-only database batch with pre-allocated buffer.
+func (d *Database) NewBatchWithSize(size int) ethdb.Batch {
+	return NewBatch(d.db, nil)
+}
+
 // NewIterator satisfies the ethdb.Iteratee interface
 // it creates a binary-alphabetical iterator over a subset
 // of database content with a particular key prefix, starting at a particular
@@ -283,16 +289,16 @@ func (d *Database) Ancients() (uint64, error) {
 	return 0, errNotSupported
 }
 
+// Tail satisfies the ethdb.AncientReader interface.
+// Tail returns the number of first stored item in the freezer.
+func (d *Database) Tail() (uint64, error) {
+	return 0, errNotSupported
+}
+
 // AncientSize satisfies the ethdb.AncientReader interface
 // AncientSize returns the ancient size of the specified category
 func (d *Database) AncientSize(kind string) (uint64, error) {
 	return 0, errNotSupported
-}
-
-// AppendAncient satisfies the ethdb.AncientWriter interface
-// AppendAncient injects all binary blobs belong to block at the end of the append-only immutable table files
-func (d *Database) AppendAncient(number uint64, hash, header, body, receipt, td []byte) error {
-	return errNotSupported
 }
 
 // AncientRange retrieves all the items in a range, starting from the index 'start'.
@@ -309,9 +315,15 @@ func (d *Database) ReadAncients(fn func(ethdb.AncientReader) error) (err error) 
 	return errNotSupported
 }
 
-// TruncateAncients satisfies the ethdb.AncientWriter interface
-// TruncateAncients discards all but the first n ancient data from the ancient store
-func (d *Database) TruncateAncients(n uint64) error {
+// TruncateHead satisfies the ethdb.AncientWriter interface.
+// TruncateHead discards all but the first n ancient data from the ancient store.
+func (d *Database) TruncateHead(n uint64) error {
+	return errNotSupported
+}
+
+// TruncateTail satisfies the ethdb.AncientWriter interface.
+// TruncateTail discards the first n ancient data from the ancient store.
+func (d *Database) TruncateTail(n uint64) error {
 	return errNotSupported
 }
 
@@ -319,4 +331,16 @@ func (d *Database) TruncateAncients(n uint64) error {
 // Sync flushes all in-memory ancient store data to disk
 func (d *Database) Sync() error {
 	return errNotSupported
+}
+
+// MigrateTable satisfies the ethdb.AncientWriter interface.
+// MigrateTable processes and migrates entries of a given table to a new format.
+func (d *Database) MigrateTable(string, func([]byte) ([]byte, error)) error {
+	return errNotSupported
+}
+
+// NewSnapshot satisfies the ethdb.Snapshotter interface.
+// NewSnapshot creates a database snapshot based on the current state.
+func (d *Database) NewSnapshot() (ethdb.Snapshot, error) {
+	return nil, errNotSupported
 }
