@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	pgipfsethdb "github.com/vulcanize/ipfs-ethdb/postgres"
+	pgipfsethdb "github.com/vulcanize/ipfs-ethdb/v3/postgres"
 )
 
 var (
