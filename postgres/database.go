@@ -32,9 +32,15 @@ import (
 var errNotSupported = errors.New("this operation is not supported")
 
 var (
-	hasPgStr    = "SELECT exists(select 1 from public.blocks WHERE key = $1)"
-	getPgStr    = "SELECT data FROM public.blocks WHERE key = $1"
-	putPgStr    = "INSERT INTO public.blocks (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING"
+	hasPgStr = "SELECT exists(select 1 from public.blocks WHERE key = $1)"
+
+	// TODO Fix the get query to accomodate block_number field
+	// Using LIMIT 1 for now
+	getPgStr = "SELECT data FROM public.blocks WHERE key = $1 LIMIT 1"
+
+	// TODO Fix the put query to accomodate block_number field
+	// block_number has been put as 1 always for now.
+	putPgStr    = "INSERT INTO public.blocks (key, data, block_number) VALUES ($1, $2, 1) ON CONFLICT DO NOTHING"
 	deletePgStr = "DELETE FROM public.blocks WHERE key = $1"
 	dbSizePgStr = "SELECT pg_database_size(current_database())"
 )
