@@ -18,7 +18,7 @@ import (
     "github.com/ethereum/go-ethereum/core/state"
     "github.com/ethereum/go-ethereum/trie"
     "github.com/jmoiron/sqlx"
-    "github.com/vulcanize/ipfs-ethdb/v3/postgres"
+    "github.com/vulcanize/ipfs-ethdb/v4/postgres"
 )
 
 func main() {

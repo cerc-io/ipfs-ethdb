@@ -34,7 +34,7 @@ Ancient interfaces are used for Ancient/frozen data operations (e.g. rawdb/table
 Outside of these primarily auxiliary capabilities, this package satisfies the interfaces required for many state operations using Ethereum data on IPFS.
 
 e.g.
- 
+
 go-ethereum trie.NodeIterator and state.NodeIterator can be constructed from the ethdb.KeyValueStore and ethdb.Database interfaces, respectively:
 
 ```go
@@ -42,7 +42,7 @@ package main
 
 import (
     "context"
-	
+
     "github.com/ethereum/go-ethereum/common"
     "github.com/ethereum/go-ethereum/core/state"
     "github.com/ethereum/go-ethereum/trie"
@@ -50,7 +50,7 @@ import (
     "github.com/ipfs/go-ipfs/core"
     "github.com/ipfs/go-ipfs/repo/fsrepo"
     "github.com/jmoiron/sqlx"
-    "github.com/vulcanize/ipfs-ethdb"
+    "github.com/vulcanize/ipfs-ethdb/v4"
 )
 
 func main() {

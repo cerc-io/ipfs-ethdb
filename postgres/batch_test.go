@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	pgipfsethdb "github.com/vulcanize/ipfs-ethdb/v3/postgres"
+	pgipfsethdb "github.com/vulcanize/ipfs-ethdb/v4/postgres"
 )
 
 var (
@@ -49,6 +49,11 @@ var _ = Describe("Batch", func() {
 		}
 
 		database = pgipfsethdb.NewDatabase(db, cacheConfig)
+
+		databaseWithBlock, ok := database.(*pgipfsethdb.Database)
+		Expect(ok).To(BeTrue())
+		(*databaseWithBlock).BlockNumber = testBlockNumber
+
 		batch = database.NewBatch()
 	})
 	AfterEach(func() {

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"strconv"
 	"strings"
 	"time"
@@ -32,9 +33,9 @@ import (
 var errNotSupported = errors.New("this operation is not supported")
 
 var (
-	hasPgStr    = "SELECT exists(select 1 from public.blocks WHERE key = $1)"
-	getPgStr    = "SELECT data FROM public.blocks WHERE key = $1"
-	putPgStr    = "INSERT INTO public.blocks (key, data) VALUES ($1, $2) ON CONFLICT (key) DO NOTHING"
+	hasPgStr    = "SELECT exists(select 1 from public.blocks WHERE key = $1 LIMIT 1)"
+	getPgStr    = "SELECT data FROM public.blocks WHERE key = $1 LIMIT 1"
+	putPgStr    = "INSERT INTO public.blocks (key, data, block_number) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"
 	deletePgStr = "DELETE FROM public.blocks WHERE key = $1"
 	dbSizePgStr = "SELECT pg_database_size(current_database())"
 )
@@ -45,6 +46,8 @@ var _ ethdb.Database = &Database{}
 type Database struct {
 	db    *sqlx.DB
 	cache *groupcache.Group
+
+	BlockNumber *big.Int
 }
 
 func (d *Database) ModifyAncients(f func(ethdb.AncientWriteOp) error) (int64, error) {
@@ -136,7 +139,7 @@ func (d *Database) Put(key []byte, value []byte) error {
 	if err != nil {
 		return err
 	}
-	_, err = d.db.Exec(putPgStr, mhKey, value)
+	_, err = d.db.Exec(putPgStr, mhKey, value, d.BlockNumber.Uint64())
 	return err
 }
 
@@ -245,13 +248,13 @@ func (d *Database) Compact(start []byte, limit []byte) error {
 // NewBatch creates a write-only database that buffers changes to its host db
 // until a final write is called
 func (d *Database) NewBatch() ethdb.Batch {
-	return NewBatch(d.db, nil)
+	return NewBatch(d.db, nil, d.BlockNumber)
 }
 
 // NewBatchWithSize satisfies the ethdb.Batcher interface.
 // NewBatchWithSize creates a write-only database batch with pre-allocated buffer.
 func (d *Database) NewBatchWithSize(size int) ethdb.Batch {
-	return NewBatch(d.db, nil)
+	return NewBatch(d.db, nil, d.BlockNumber)
 }
 
 // NewIterator satisfies the ethdb.Iteratee interface

@@ -1,4 +1,4 @@
-module github.com/vulcanize/ipfs-ethdb/v3
+module github.com/vulcanize/ipfs-ethdb/v4
 
 go 1.15
 
