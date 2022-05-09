@@ -32,13 +32,14 @@ import (
 )
 
 var (
-	database     ethdb.Database
-	db           *sqlx.DB
-	err          error
-	testHeader   = types.Header{Number: big.NewInt(1337)}
-	testValue, _ = rlp.EncodeToBytes(testHeader)
-	testEthKey   = testHeader.Hash().Bytes()
-	testMhKey, _ = pgipfsethdb.MultihashKeyFromKeccak256(testEthKey)
+	database        ethdb.Database
+	db              *sqlx.DB
+	err             error
+	testBlockNumber = big.NewInt(1337)
+	testHeader      = types.Header{Number: testBlockNumber}
+	testValue, _    = rlp.EncodeToBytes(testHeader)
+	testEthKey      = testHeader.Hash().Bytes()
+	testMhKey, _    = pgipfsethdb.MultihashKeyFromKeccak256(testEthKey)
 )
 
 var _ = Describe("Database", func() {
@@ -53,6 +54,10 @@ var _ = Describe("Database", func() {
 		}
 
 		database = pgipfsethdb.NewDatabase(db, cacheConfig)
+
+		databaseWithBlock, ok := database.(*pgipfsethdb.Database)
+		Expect(ok).To(BeTrue())
+		(*databaseWithBlock).BlockNumber = testBlockNumber
 	})
 	AfterEach(func() {
 		groupcache.DeregisterGroup("db")
@@ -67,7 +72,7 @@ var _ = Describe("Database", func() {
 			Expect(has).ToNot(BeTrue())
 		})
 		It("returns true if a key-pair exists in the db", func() {
-			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, 1)", testMhKey, testValue)
+			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, $3)", testMhKey, testValue, testBlockNumber.Uint64())
 			Expect(err).ToNot(HaveOccurred())
 			has, err := database.Has(testEthKey)
 			Expect(err).ToNot(HaveOccurred())
@@ -82,7 +87,7 @@ var _ = Describe("Database", func() {
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
 		})
 		It("returns the value associated with the key, if the pair exists", func() {
-			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, 1)", testMhKey, testValue)
+			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, $3)", testMhKey, testValue, testBlockNumber.Uint64())
 			Expect(err).ToNot(HaveOccurred())
 			val, err := database.Get(testEthKey)
 			Expect(err).ToNot(HaveOccurred())

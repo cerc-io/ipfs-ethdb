@@ -17,6 +17,8 @@
 package pgipfsethdb
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
 )
@@ -28,13 +30,16 @@ type Batch struct {
 	db        *sqlx.DB
 	tx        *sqlx.Tx
 	valueSize int
+
+	blockNumber *big.Int
 }
 
 // NewBatch returns a ethdb.Batch interface for PG-IPFS
-func NewBatch(db *sqlx.DB, tx *sqlx.Tx) ethdb.Batch {
+func NewBatch(db *sqlx.DB, tx *sqlx.Tx, blockNumber *big.Int) ethdb.Batch {
 	b := &Batch{
-		db: db,
-		tx: tx,
+		db:          db,
+		tx:          tx,
+		blockNumber: blockNumber,
 	}
 	if tx == nil {
 		b.Reset()
@@ -50,7 +55,7 @@ func (b *Batch) Put(key []byte, value []byte) (err error) {
 	if err != nil {
 		return err
 	}
-	if _, err = b.tx.Exec(putPgStr, mhKey, value); err != nil {
+	if _, err = b.tx.Exec(putPgStr, mhKey, value, b.blockNumber.Uint64()); err != nil {
 		return err
 	}
 	b.valueSize += len(value)

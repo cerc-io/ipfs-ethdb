@@ -49,6 +49,11 @@ var _ = Describe("Batch", func() {
 		}
 
 		database = pgipfsethdb.NewDatabase(db, cacheConfig)
+
+		databaseWithBlock, ok := database.(*pgipfsethdb.Database)
+		Expect(ok).To(BeTrue())
+		(*databaseWithBlock).BlockNumber = testBlockNumber
+
 		batch = database.NewBatch()
 	})
 	AfterEach(func() {
