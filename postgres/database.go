@@ -311,7 +311,7 @@ func (d *Database) AncientRange(kind string, start, count, maxBytes uint64) ([][
 }
 
 // ReadAncients applies the provided AncientReader function
-func (d *Database) ReadAncients(fn func(ethdb.AncientReader) error) (err error) {
+func (d *Database) ReadAncients(fn func(ethdb.AncientReaderOp) error) (err error) {
 	return errNotSupported
 }
 
@@ -343,4 +343,9 @@ func (d *Database) MigrateTable(string, func([]byte) ([]byte, error)) error {
 // NewSnapshot creates a database snapshot based on the current state.
 func (d *Database) NewSnapshot() (ethdb.Snapshot, error) {
 	return nil, errNotSupported
+}
+
+// AncientDatadir returns an error as we don't have a backing chain freezer.
+func (d *Database) AncientDatadir() (string, error) {
+	return "", errNotSupported
 }
