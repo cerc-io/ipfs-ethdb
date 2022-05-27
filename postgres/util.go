@@ -38,7 +38,7 @@ func MultihashKeyFromKeccak256(h []byte) (string, error) {
 // it assumes the database has the IPFS public.blocks table present
 // DO NOT use a production db for the test db, as it will remove all contents of the public.blocks table
 func TestDB() (*sqlx.DB, error) {
-	connectStr := "postgresql://localhost:5432/vulcanize_testing?sslmode=disable"
+	connectStr := "postgresql://vdbm:password@localhost:8077/vulcanize_testing?sslmode=disable"
 	return sqlx.Connect("postgres", connectStr)
 }
 
