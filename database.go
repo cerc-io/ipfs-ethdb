@@ -69,7 +69,7 @@ func (d *Database) Has(key []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return d.blockService.Blockstore().Has(c)
+	return d.blockService.Blockstore().Has(context.Background(), c)
 }
 
 // Get satisfies the ethdb.KeyValueReader interface
@@ -95,7 +95,7 @@ func (d *Database) Put(key []byte, value []byte) error {
 	if err != nil {
 		return err
 	}
-	return d.blockService.AddBlock(b)
+	return d.blockService.AddBlock(context.Background(), b)
 }
 
 // Delete satisfies the ethdb.KeyValueWriter interface
@@ -106,7 +106,7 @@ func (d *Database) Delete(key []byte) error {
 	if err != nil {
 		return err
 	}
-	return d.blockService.DeleteBlock(c)
+	return d.blockService.DeleteBlock(context.Background(), c)
 }
 
 // DatabaseProperty enum type
