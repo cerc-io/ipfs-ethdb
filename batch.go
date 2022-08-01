@@ -17,6 +17,7 @@
 package ipfsethdb
 
 import (
+	"context"
 	"errors"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -103,7 +104,7 @@ func (b *Batch) Write() error {
 		}
 		puts[i] = b
 	}
-	if err := b.blockService.AddBlocks(puts); err != nil {
+	if err := b.blockService.AddBlocks(context.Background(), puts); err != nil {
 		return err
 	}
 	for _, key := range b.deleteCache.Keys() {
@@ -112,7 +113,7 @@ func (b *Batch) Write() error {
 		if err != nil {
 			return err
 		}
-		if err := b.blockService.DeleteBlock(c); err != nil {
+		if err := b.blockService.DeleteBlock(context.Background(), c); err != nil {
 			return err
 		}
 	}

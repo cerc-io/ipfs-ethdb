@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/ethdb"
@@ -69,7 +68,7 @@ func (d *Database) Has(key []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return d.blockService.Blockstore().Has(c)
+	return d.blockService.Blockstore().Has(context.Background(), c)
 }
 
 // Get satisfies the ethdb.KeyValueReader interface
@@ -95,7 +94,7 @@ func (d *Database) Put(key []byte, value []byte) error {
 	if err != nil {
 		return err
 	}
-	return d.blockService.AddBlock(b)
+	return d.blockService.AddBlock(context.Background(), b)
 }
 
 // Delete satisfies the ethdb.KeyValueWriter interface
@@ -106,7 +105,7 @@ func (d *Database) Delete(key []byte) error {
 	if err != nil {
 		return err
 	}
-	return d.blockService.DeleteBlock(c)
+	return d.blockService.DeleteBlock(context.Background(), c)
 }
 
 // DatabaseProperty enum type
@@ -135,9 +134,6 @@ func (d *Database) Stat(property string) (string, error) {
 		return "", err
 	}
 	switch prop {
-	case ExchangeOnline:
-		online := d.blockService.Exchange().IsOnline()
-		return strconv.FormatBool(online), nil
 	default:
 		return "", fmt.Errorf("unhandled database property")
 	}
