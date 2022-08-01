@@ -52,27 +52,27 @@ func (mbs *MockBlockservice) Exchange() exchange.Interface {
 	panic("Exchange: implement me")
 }
 
-func (mbs *MockBlockservice) AddBlock(b blocks.Block) error {
-	return mbs.blockStore.Put(b)
+func (mbs *MockBlockservice) AddBlock(ctx context.Context, b blocks.Block) error {
+	return mbs.blockStore.Put(ctx, b)
 }
 
-func (mbs *MockBlockservice) AddBlocks(bs []blocks.Block) error {
-	return mbs.blockStore.PutMany(bs)
+func (mbs *MockBlockservice) AddBlocks(ctx context.Context, bs []blocks.Block) error {
+	return mbs.blockStore.PutMany(ctx, bs)
 }
 
-func (mbs *MockBlockservice) DeleteBlock(c cid.Cid) error {
-	return mbs.blockStore.DeleteBlock(c)
+func (mbs *MockBlockservice) DeleteBlock(ctx context.Context, c cid.Cid) error {
+	return mbs.blockStore.DeleteBlock(ctx, c)
 }
 
 func (mbs *MockBlockservice) GetBlock(ctx context.Context, c cid.Cid) (blocks.Block, error) {
-	return mbs.blockStore.Get(c)
+	return mbs.blockStore.Get(ctx, c)
 }
 
 func (mbs *MockBlockservice) GetBlocks(ctx context.Context, cs []cid.Cid) <-chan blocks.Block {
 	blockChan := make(chan blocks.Block)
 	go func() {
 		for _, c := range cs {
-			if b, err := mbs.blockStore.Get(c); err == nil {
+			if b, err := mbs.blockStore.Get(ctx, c); err == nil {
 				blockChan <- b
 			}
 		}
@@ -93,17 +93,17 @@ type MockBlockstore struct {
 	err    error
 }
 
-func (mbs *MockBlockstore) DeleteBlock(c cid.Cid) error {
+func (mbs *MockBlockstore) DeleteBlock(ctx context.Context, c cid.Cid) error {
 	delete(mbs.blocks, c.String())
 	return mbs.err
 }
 
-func (mbs *MockBlockstore) Has(c cid.Cid) (bool, error) {
+func (mbs *MockBlockstore) Has(ctx context.Context, c cid.Cid) (bool, error) {
 	_, ok := mbs.blocks[c.String()]
 	return ok, mbs.err
 }
 
-func (mbs *MockBlockstore) Get(c cid.Cid) (blocks.Block, error) {
+func (mbs *MockBlockstore) Get(ctx context.Context, c cid.Cid) (blocks.Block, error) {
 	obj, ok := mbs.blocks[c.String()]
 	if !ok {
 		return nil, blockNotFoundErr
@@ -111,7 +111,7 @@ func (mbs *MockBlockstore) Get(c cid.Cid) (blocks.Block, error) {
 	return obj, mbs.err
 }
 
-func (mbs *MockBlockstore) GetSize(c cid.Cid) (int, error) {
+func (mbs *MockBlockstore) GetSize(ctx context.Context, c cid.Cid) (int, error) {
 	obj, ok := mbs.blocks[c.String()]
 	if !ok {
 		return 0, blockNotFoundErr
@@ -119,12 +119,12 @@ func (mbs *MockBlockstore) GetSize(c cid.Cid) (int, error) {
 	return len(obj.RawData()), mbs.err
 }
 
-func (mbs *MockBlockstore) Put(b blocks.Block) error {
+func (mbs *MockBlockstore) Put(ctx context.Context, b blocks.Block) error {
 	mbs.blocks[b.Cid().String()] = b
 	return mbs.err
 }
 
-func (mbs *MockBlockstore) PutMany(bs []blocks.Block) error {
+func (mbs *MockBlockstore) PutMany(ctx context.Context, bs []blocks.Block) error {
 	for _, b := range bs {
 		mbs.blocks[b.Cid().String()] = b
 	}
