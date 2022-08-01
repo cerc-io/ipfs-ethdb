@@ -7,9 +7,9 @@ require (
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-blockservice v0.1.3
-	github.com/ipfs/go-cid v0.0.7
-	github.com/ipfs/go-ipfs-blockstore v1.0.1
-	github.com/ipfs/go-ipfs-ds-help v1.0.0
+	github.com/ipfs/go-cid v0.2.0
+	github.com/ipfs/go-ipfs-blockstore v1.2.0
+	github.com/ipfs/go-ipfs-ds-help v1.1.0
 	github.com/ipfs/go-ipfs-exchange-interface v0.0.1
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.5
@@ -29,12 +29,13 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
-	github.com/ipfs/go-datastore v0.4.4 // indirect
+	github.com/ipfs/go-datastore v0.5.0 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
+	github.com/ipfs/go-ipld-format v0.4.0 // indirect
 	github.com/ipfs/go-log v0.0.1 // indirect
 	github.com/ipfs/go-metrics-interface v0.0.1 // indirect
 	github.com/ipfs/go-verifcid v0.0.1 // indirect
-	github.com/jbenet/goprocess v0.1.3 // indirect
+	github.com/jbenet/goprocess v0.1.4 // indirect
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
@@ -62,3 +63,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
+
+replace github.com/ethereum/go-ethereum v1.10.21 => github.com/vulcanize/go-ethereum v1.10.21-statediff-4.1.2-alpha
