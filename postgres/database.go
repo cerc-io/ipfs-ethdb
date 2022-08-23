@@ -18,6 +18,7 @@ package pgipfsethdb
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"math/big"
@@ -28,6 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
 	"github.com/mailgun/groupcache/v2"
+	log "github.com/sirupsen/logrus"
 )
 
 var errNotSupported = errors.New("this operation is not supported")
@@ -113,7 +115,12 @@ func (d *Database) Has(key []byte) (bool, error) {
 // Get retrieves the given key if it's present in the key-value data store
 func (d *Database) dbGet(key string) ([]byte, error) {
 	var data []byte
-	return data, d.db.Get(&data, getPgStr, key)
+	err := d.db.Get(&data, getPgStr, key)
+	if err == sql.ErrNoRows {
+		log.Warn("Database miss for key", key)
+	}
+
+	return data, err
 }
 
 // Get satisfies the ethdb.KeyValueReader interface
