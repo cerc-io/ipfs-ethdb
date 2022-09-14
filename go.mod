@@ -1,4 +1,4 @@
-module github.com/vulcanize/ipfs-ethdb/v4
+module github.com/cerc-io/ipfs-ethdb/v4
 
 go 1.18
 
@@ -69,4 +69,4 @@ require (
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
 
-replace github.com/ethereum/go-ethereum v1.10.23 => github.com/vulcanize/go-ethereum v1.10.23-statediff-4.2.0-alpha
+replace github.com/ethereum/go-ethereum v1.10.23 => github.com/cerc-io/go-ethereum v1.10.23-statediff-4.2.0-alpha
