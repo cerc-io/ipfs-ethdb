@@ -31,10 +31,10 @@ import (
 )
 
 var (
-	batch         ethdb.Batch
-	testHeader2   = types.Header{Number: big.NewInt(2)}
-	testValue2, _ = rlp.EncodeToBytes(testHeader2)
-	testEthKey2   = testHeader2.Hash().Bytes()
+	batch               ethdb.Batch
+	testHeader2         = types.Header{Number: big.NewInt(2)}
+	testHeaderValue2, _ = rlp.EncodeToBytes(&testHeader2)
+	testHeaderKey2      = testHeader2.Hash().Bytes()
 )
 
 var _ = Describe("Batch", func() {
@@ -48,7 +48,7 @@ var _ = Describe("Batch", func() {
 			ExpiryDuration: time.Hour,
 		}
 
-		database = pgipfsethdb.NewDatabase(db, cacheConfig)
+		database = pgipfsethdb.NewDatabase(db, cacheConfig, false)
 
 		databaseWithBlock, ok := database.(*pgipfsethdb.Database)
 		Expect(ok).To(BeTrue())
@@ -64,50 +64,50 @@ var _ = Describe("Batch", func() {
 
 	Describe("Put/Write", func() {
 		It("adds the key-value pair to the batch", func() {
-			_, err = database.Get(testEthKey)
+			_, err = database.Get(testHeaderKey)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
-			_, err = database.Get(testEthKey2)
+			_, err = database.Get(testHeaderKey2)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
 
-			err = batch.Put(testEthKey, testValue)
+			err = batch.Put(testHeaderKey, testHeaderValue)
 			Expect(err).ToNot(HaveOccurred())
-			err = batch.Put(testEthKey2, testValue2)
+			err = batch.Put(testHeaderKey2, testHeaderValue2)
 			Expect(err).ToNot(HaveOccurred())
 			err = batch.Write()
 			Expect(err).ToNot(HaveOccurred())
 
-			val, err := database.Get(testEthKey)
+			val, err := database.Get(testHeaderKey)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(val).To(Equal(testValue))
-			val2, err := database.Get(testEthKey2)
+			Expect(val).To(Equal(testHeaderValue))
+			val2, err := database.Get(testHeaderKey2)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(val2).To(Equal(testValue2))
+			Expect(val2).To(Equal(testHeaderValue2))
 		})
 	})
 
 	Describe("Delete/Reset/Write", func() {
 		It("deletes the key-value pair in the batch", func() {
-			err = batch.Put(testEthKey, testValue)
+			err = batch.Put(testHeaderKey, testHeaderValue)
 			Expect(err).ToNot(HaveOccurred())
-			err = batch.Put(testEthKey2, testValue2)
+			err = batch.Put(testHeaderKey2, testHeaderValue2)
 			Expect(err).ToNot(HaveOccurred())
 			err = batch.Write()
 			Expect(err).ToNot(HaveOccurred())
 
 			batch.Reset()
-			err = batch.Delete(testEthKey)
+			err = batch.Delete(testHeaderKey)
 			Expect(err).ToNot(HaveOccurred())
-			err = batch.Delete(testEthKey2)
+			err = batch.Delete(testHeaderKey2)
 			Expect(err).ToNot(HaveOccurred())
 			err = batch.Write()
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = database.Get(testEthKey)
+			_, err = database.Get(testHeaderKey)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
-			_, err = database.Get(testEthKey2)
+			_, err = database.Get(testHeaderKey2)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
 		})
@@ -115,15 +115,15 @@ var _ = Describe("Batch", func() {
 
 	Describe("ValueSize/Reset", func() {
 		It("returns the size of data in the batch queued for write", func() {
-			err = batch.Put(testEthKey, testValue)
+			err = batch.Put(testHeaderKey, testHeaderValue)
 			Expect(err).ToNot(HaveOccurred())
-			err = batch.Put(testEthKey2, testValue2)
+			err = batch.Put(testHeaderKey2, testHeaderValue2)
 			Expect(err).ToNot(HaveOccurred())
 			err = batch.Write()
 			Expect(err).ToNot(HaveOccurred())
 
 			size := batch.ValueSize()
-			Expect(size).To(Equal(len(testValue) + len(testValue2)))
+			Expect(size).To(Equal(len(testHeaderValue) + len(testHeaderValue2)))
 
 			batch.Reset()
 			size = batch.ValueSize()

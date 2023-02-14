@@ -40,6 +40,9 @@ var (
 	putPgStr    = "INSERT INTO public.blocks (key, data, block_number) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"
 	deletePgStr = "DELETE FROM public.blocks WHERE key = $1"
 	dbSizePgStr = "SELECT pg_database_size(current_database())"
+
+	getStateLeafKeyPgStr   = "SELECT state_leaf_key FROM eth.state_cids WHERE mh_key = $1"
+	getStorageLeafKeyPgStr = "SELECT storage_leaf_key FROM eth.storage_cids WHERE mh_key = $1"
 )
 
 var _ ethdb.Database = &Database{}
@@ -48,6 +51,9 @@ var _ ethdb.Database = &Database{}
 type Database struct {
 	db    *sqlx.DB
 	cache *groupcache.Group
+
+	// If true, also query the state_cids/storage_cids tables for validation
+	checkCidTables bool
 
 	BlockNumber *big.Int
 }
@@ -62,17 +68,10 @@ type CacheConfig struct {
 	ExpiryDuration time.Duration
 }
 
-// NewKeyValueStore returns a ethdb.KeyValueStore interface for PG-IPFS
-func NewKeyValueStore(db *sqlx.DB, cacheConfig CacheConfig) ethdb.KeyValueStore {
-	database := Database{db: db}
-	database.InitCache(cacheConfig)
-
-	return &database
-}
-
 // NewDatabase returns a ethdb.Database interface for PG-IPFS
-func NewDatabase(db *sqlx.DB, cacheConfig CacheConfig) ethdb.Database {
+func NewDatabase(db *sqlx.DB, cacheConfig CacheConfig, checkCids bool) ethdb.Database {
 	database := Database{db: db}
+	database.checkCidTables = checkCids
 	database.InitCache(cacheConfig)
 
 	return &database
@@ -125,10 +124,31 @@ func (d *Database) dbGet(key string) ([]byte, error) {
 
 // Get satisfies the ethdb.KeyValueReader interface
 // Get retrieves the given key if it's present in the key-value data store
+// If the Database is configured to check CID tables, it will also query the relevant
+// tables and return an error if no rows are found.
 func (d *Database) Get(key []byte) ([]byte, error) {
 	mhKey, err := MultihashKeyFromKeccak256(key)
 	if err != nil {
 		return nil, err
+	}
+
+	// Validate the CIDs tables
+	if d.checkCidTables {
+		rows, err := d.db.Query(getStateLeafKeyPgStr, mhKey)
+		if err != nil {
+			return nil, err
+		}
+		if !rows.Next() {
+			// Not in state nodes,check storage nodes
+			if rows, err = d.db.Query(getStorageLeafKeyPgStr, mhKey); err != nil {
+				return nil, err
+			}
+			if !rows.Next() {
+				return nil, fmt.Errorf("no result for mh_key in state_cids or storage_cids: %x", key)
+			}
+		}
+
+		rows.Close()
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
