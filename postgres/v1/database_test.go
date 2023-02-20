@@ -20,6 +20,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/cerc-io/ipfs-ethdb/v4/postgres/shared"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -28,7 +30,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	pgipfsethdb "github.com/cerc-io/ipfs-ethdb/v4/postgres"
+	pgipfsethdb "github.com/cerc-io/ipfs-ethdb/v4/postgres/v1"
 )
 
 var (
@@ -44,7 +46,7 @@ var (
 
 var _ = Describe("Database", func() {
 	BeforeEach(func() {
-		db, err = pgipfsethdb.TestDB()
+		db, err = shared.TestDB()
 		Expect(err).ToNot(HaveOccurred())
 
 		cacheConfig := pgipfsethdb.CacheConfig{
@@ -61,7 +63,7 @@ var _ = Describe("Database", func() {
 	})
 	AfterEach(func() {
 		groupcache.DeregisterGroup("db")
-		err = pgipfsethdb.ResetTestDB(db)
+		err = shared.ResetTestDB(db)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
