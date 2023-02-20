@@ -20,6 +20,10 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/cerc-io/ipfs-ethdb/v4/postgres/shared"
+
+	"github.com/ipfs/go-cid"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -28,7 +32,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	pgipfsethdb "github.com/cerc-io/ipfs-ethdb/v4/postgres"
+	pgipfsethdb "github.com/cerc-io/ipfs-ethdb/v4/postgres/v0"
 )
 
 var (
@@ -39,12 +43,12 @@ var (
 	testHeader      = types.Header{Number: testBlockNumber}
 	testValue, _    = rlp.EncodeToBytes(testHeader)
 	testEthKey      = testHeader.Hash().Bytes()
-	testMhKey, _    = pgipfsethdb.MultihashKeyFromKeccak256(testEthKey)
+	testCID, _      = pgipfsethdb.CIDFromKeccak256(testEthKey, cid.EthBlock)
 )
 
 var _ = Describe("Database", func() {
 	BeforeEach(func() {
-		db, err = pgipfsethdb.TestDB()
+		db, err = shared.TestDB()
 		Expect(err).ToNot(HaveOccurred())
 
 		cacheConfig := pgipfsethdb.CacheConfig{
@@ -61,20 +65,20 @@ var _ = Describe("Database", func() {
 	})
 	AfterEach(func() {
 		groupcache.DeregisterGroup("db")
-		err = pgipfsethdb.ResetTestDB(db)
+		err = shared.ResetTestDB(db)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Describe("Has", func() {
 		It("returns false if a key-pair doesn't exist in the db", func() {
-			has, err := database.Has(testEthKey)
+			has, err := database.Has(testCID.Bytes())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(has).ToNot(BeTrue())
 		})
 		It("returns true if a key-pair exists in the db", func() {
-			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, $3)", testMhKey, testValue, testBlockNumber.Uint64())
+			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, $3)", testCID.String(), testValue, testBlockNumber.Uint64())
 			Expect(err).ToNot(HaveOccurred())
-			has, err := database.Has(testEthKey)
+			has, err := database.Has(testCID.Bytes())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(has).To(BeTrue())
 		})
@@ -82,14 +86,14 @@ var _ = Describe("Database", func() {
 
 	Describe("Get", func() {
 		It("throws an err if the key-pair doesn't exist in the db", func() {
-			_, err = database.Get(testEthKey)
+			_, err = database.Get(testCID.Bytes())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
 		})
 		It("returns the value associated with the key, if the pair exists", func() {
-			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, $3)", testMhKey, testValue, testBlockNumber.Uint64())
+			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, $3)", testCID.String(), testValue, testBlockNumber.Uint64())
 			Expect(err).ToNot(HaveOccurred())
-			val, err := database.Get(testEthKey)
+			val, err := database.Get(testCID.Bytes())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(val).To(Equal(testValue))
 		})
@@ -97,13 +101,13 @@ var _ = Describe("Database", func() {
 
 	Describe("Put", func() {
 		It("persists the key-value pair in the database", func() {
-			_, err = database.Get(testEthKey)
+			_, err = database.Get(testCID.Bytes())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
 
-			err = database.Put(testEthKey, testValue)
+			err = database.Put(testCID.Bytes(), testValue)
 			Expect(err).ToNot(HaveOccurred())
-			val, err := database.Get(testEthKey)
+			val, err := database.Get(testCID.Bytes())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(val).To(Equal(testValue))
 		})
@@ -111,15 +115,15 @@ var _ = Describe("Database", func() {
 
 	Describe("Delete", func() {
 		It("removes the key-value pair from the database", func() {
-			err = database.Put(testEthKey, testValue)
+			err = database.Put(testCID.Bytes(), testValue)
 			Expect(err).ToNot(HaveOccurred())
-			val, err := database.Get(testEthKey)
+			val, err := database.Get(testCID.Bytes())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(val).To(Equal(testValue))
 
-			err = database.Delete(testEthKey)
+			err = database.Delete(testCID.Bytes())
 			Expect(err).ToNot(HaveOccurred())
-			_, err = database.Get(testEthKey)
+			_, err = database.Get(testCID.Bytes())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
 		})

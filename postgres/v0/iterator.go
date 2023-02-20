@@ -18,6 +18,7 @@ package pgipfsethdb
 
 import (
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ipfs/go-cid"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -72,13 +73,13 @@ func (i *Iterator) Key() []byte {
 // The caller should not modify the contents of the returned slice
 // and its contents may change on the next call to Next
 func (i *Iterator) Value() []byte {
-	mhKey, err := MultihashKeyFromKeccak256(i.currentKey)
+	c, err := cid.Cast(i.currentKey)
 	if err != nil {
 		i.err = err
 		return nil
 	}
 	var data []byte
-	i.err = i.db.Get(&data, getPgStr, mhKey)
+	i.err = i.db.Get(&data, getPgStr, c)
 	return data
 }
 

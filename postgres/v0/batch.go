@@ -19,6 +19,8 @@ package pgipfsethdb
 import (
 	"math/big"
 
+	"github.com/ipfs/go-cid"
+
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
 )
@@ -49,13 +51,20 @@ func NewBatch(db *sqlx.DB, tx *sqlx.Tx, blockNumber *big.Int) ethdb.Batch {
 
 // Put satisfies the ethdb.Batch interface
 // Put inserts the given value into the key-value data store
-// Key is expected to be the keccak256 hash of value
-func (b *Batch) Put(key []byte, value []byte) (err error) {
-	mhKey, err := MultihashKeyFromKeccak256(key)
+// Key is expected to be a fully formulated cid key
+// TODO: note, now that we expected a cid we could route to the "cids" tables based on prefix instead of to public.blocks
+// but is it better to handle this routing here, or use a completely different interface since we already have to refactor
+// at levels above this package in order to pass in cids instead of raw keccak256 hashes
+func (b *Batch) Put(cidBytes []byte, value []byte) (err error) {
+	// cast and resolve strings from cid.Cast
+	// this will assert that we have a correctly formatted CID
+	// and will handle the different string encodings for v0 and v1 CIDs
+	// (note that this v0 vs v1 is different from the blockstore v0 vs v1)
+	c, err := cid.Cast(cidBytes)
 	if err != nil {
 		return err
 	}
-	if _, err = b.tx.Exec(putPgStr, mhKey, value, b.blockNumber.Uint64()); err != nil {
+	if _, err = b.tx.Exec(putPgStr, c.String(), value, b.blockNumber.Uint64()); err != nil {
 		return err
 	}
 	b.valueSize += len(value)
@@ -64,12 +73,12 @@ func (b *Batch) Put(key []byte, value []byte) (err error) {
 
 // Delete satisfies the ethdb.Batch interface
 // Delete removes the key from the key-value data store
-func (b *Batch) Delete(key []byte) (err error) {
-	mhKey, err := MultihashKeyFromKeccak256(key)
+func (b *Batch) Delete(cidBytes []byte) (err error) {
+	c, err := cid.Cast(cidBytes)
 	if err != nil {
 		return err
 	}
-	_, err = b.tx.Exec(deletePgStr, mhKey)
+	_, err = b.tx.Exec(deletePgStr, c.String())
 	return err
 }
 

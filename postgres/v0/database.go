@@ -26,6 +26,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ipfs/go-cid"
+
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/jmoiron/sqlx"
 	"github.com/mailgun/groupcache/v2"
@@ -102,14 +104,14 @@ func (d *Database) GetCacheStats() groupcache.Stats {
 }
 
 // Has satisfies the ethdb.KeyValueReader interface
-// Has retrieves if a key is present in the key-value data store
-func (d *Database) Has(key []byte) (bool, error) {
-	mhKey, err := MultihashKeyFromKeccak256(key)
+// Has retrieves if a cid is present in the key-value data store
+func (d *Database) Has(cidBytes []byte) (bool, error) {
+	c, err := cid.Cast(cidBytes)
 	if err != nil {
 		return false, err
 	}
 	var exists bool
-	return exists, d.db.Get(&exists, hasPgStr, mhKey)
+	return exists, d.db.Get(&exists, hasPgStr, c.String())
 }
 
 // Get retrieves the given key if it's present in the key-value data store
@@ -124,9 +126,9 @@ func (d *Database) dbGet(key string) ([]byte, error) {
 }
 
 // Get satisfies the ethdb.KeyValueReader interface
-// Get retrieves the given key if it's present in the key-value data store
-func (d *Database) Get(key []byte) ([]byte, error) {
-	mhKey, err := MultihashKeyFromKeccak256(key)
+// Get retrieves the given cid if it's present in the key-value data store
+func (d *Database) Get(cidBytes []byte) ([]byte, error) {
+	c, err := cid.Cast(cidBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -135,30 +137,31 @@ func (d *Database) Get(key []byte) ([]byte, error) {
 	defer cancel()
 
 	var data []byte
-	return data, d.cache.Get(ctx, mhKey, groupcache.AllocatingByteSliceSink(&data))
+	return data, d.cache.Get(ctx, c.String(), groupcache.AllocatingByteSliceSink(&data))
 }
 
 // Put satisfies the ethdb.KeyValueWriter interface
 // Put inserts the given value into the key-value data store
-// Key is expected to be the keccak256 hash of value
-func (d *Database) Put(key []byte, value []byte) error {
-	mhKey, err := MultihashKeyFromKeccak256(key)
+// Key is expected to be a fully formulated cis of value
+func (d *Database) Put(cidBytes []byte, value []byte) error {
+	c, err := cid.Cast(cidBytes)
 	if err != nil {
 		return err
 	}
-	_, err = d.db.Exec(putPgStr, mhKey, value, d.BlockNumber.Uint64())
+	_, err = d.db.Exec(putPgStr, c.String(), value, d.BlockNumber.Uint64())
 	return err
 }
 
 // Delete satisfies the ethdb.KeyValueWriter interface
-// Delete removes the key from the key-value data store
-func (d *Database) Delete(key []byte) error {
-	mhKey, err := MultihashKeyFromKeccak256(key)
+// Delete removes the cid from the key-value data store
+func (d *Database) Delete(cidBytes []byte) error {
+	c, err := cid.Cast(cidBytes)
 	if err != nil {
 		return err
 	}
+	cidString := c.String()
 
-	_, err = d.db.Exec(deletePgStr, mhKey)
+	_, err = d.db.Exec(deletePgStr, cidString)
 	if err != nil {
 		return err
 	}
@@ -166,7 +169,7 @@ func (d *Database) Delete(key []byte) error {
 	// Remove from cache.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
-	err = d.cache.Remove(ctx, mhKey)
+	err = d.cache.Remove(ctx, cidString)
 
 	return err
 }

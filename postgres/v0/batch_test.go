@@ -20,6 +20,10 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/cerc-io/ipfs-ethdb/v4/postgres/shared"
+
+	"github.com/ipfs/go-cid"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -27,7 +31,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	pgipfsethdb "github.com/cerc-io/ipfs-ethdb/v4/postgres"
+	pgipfsethdb "github.com/cerc-io/ipfs-ethdb/v4/postgres/v0"
 )
 
 var (
@@ -35,11 +39,12 @@ var (
 	testHeader2   = types.Header{Number: big.NewInt(2)}
 	testValue2, _ = rlp.EncodeToBytes(testHeader2)
 	testEthKey2   = testHeader2.Hash().Bytes()
+	testCID2, _   = pgipfsethdb.CIDFromKeccak256(testEthKey2, cid.EthBlock)
 )
 
 var _ = Describe("Batch", func() {
 	BeforeEach(func() {
-		db, err = pgipfsethdb.TestDB()
+		db, err = shared.TestDB()
 		Expect(err).ToNot(HaveOccurred())
 
 		cacheConfig := pgipfsethdb.CacheConfig{
@@ -58,30 +63,30 @@ var _ = Describe("Batch", func() {
 	})
 	AfterEach(func() {
 		groupcache.DeregisterGroup("db")
-		err = pgipfsethdb.ResetTestDB(db)
+		err = shared.ResetTestDB(db)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Describe("Put/Write", func() {
 		It("adds the key-value pair to the batch", func() {
-			_, err = database.Get(testEthKey)
+			_, err = database.Get(testCID.Bytes())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
-			_, err = database.Get(testEthKey2)
+			_, err = database.Get(testCID2.Bytes())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
 
-			err = batch.Put(testEthKey, testValue)
+			err = batch.Put(testCID.Bytes(), testValue)
 			Expect(err).ToNot(HaveOccurred())
-			err = batch.Put(testEthKey2, testValue2)
+			err = batch.Put(testCID2.Bytes(), testValue2)
 			Expect(err).ToNot(HaveOccurred())
 			err = batch.Write()
 			Expect(err).ToNot(HaveOccurred())
 
-			val, err := database.Get(testEthKey)
+			val, err := database.Get(testCID.Bytes())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(val).To(Equal(testValue))
-			val2, err := database.Get(testEthKey2)
+			val2, err := database.Get(testCID2.Bytes())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(val2).To(Equal(testValue2))
 		})
@@ -89,25 +94,25 @@ var _ = Describe("Batch", func() {
 
 	Describe("Delete/Reset/Write", func() {
 		It("deletes the key-value pair in the batch", func() {
-			err = batch.Put(testEthKey, testValue)
+			err = batch.Put(testCID.Bytes(), testValue)
 			Expect(err).ToNot(HaveOccurred())
-			err = batch.Put(testEthKey2, testValue2)
+			err = batch.Put(testCID2.Bytes(), testValue2)
 			Expect(err).ToNot(HaveOccurred())
 			err = batch.Write()
 			Expect(err).ToNot(HaveOccurred())
 
 			batch.Reset()
-			err = batch.Delete(testEthKey)
+			err = batch.Delete(testCID.Bytes())
 			Expect(err).ToNot(HaveOccurred())
-			err = batch.Delete(testEthKey2)
+			err = batch.Delete(testCID2.Bytes())
 			Expect(err).ToNot(HaveOccurred())
 			err = batch.Write()
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = database.Get(testEthKey)
+			_, err = database.Get(testCID.Bytes())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
-			_, err = database.Get(testEthKey2)
+			_, err = database.Get(testCID2.Bytes())
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
 		})
@@ -115,9 +120,9 @@ var _ = Describe("Batch", func() {
 
 	Describe("ValueSize/Reset", func() {
 		It("returns the size of data in the batch queued for write", func() {
-			err = batch.Put(testEthKey, testValue)
+			err = batch.Put(testCID.Bytes(), testValue)
 			Expect(err).ToNot(HaveOccurred())
-			err = batch.Put(testEthKey2, testValue2)
+			err = batch.Put(testCID2.Bytes(), testValue2)
 			Expect(err).ToNot(HaveOccurred())
 			err = batch.Write()
 			Expect(err).ToNot(HaveOccurred())

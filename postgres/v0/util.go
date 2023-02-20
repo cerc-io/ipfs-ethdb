@@ -17,33 +17,16 @@
 package pgipfsethdb
 
 import (
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	dshelp "github.com/ipfs/go-ipfs-ds-help"
-	"github.com/jmoiron/sqlx"
+	"github.com/ipfs/go-cid"
 	_ "github.com/lib/pq" //postgres driver
 	"github.com/multiformats/go-multihash"
 )
 
-// MultihashKeyFromKeccak256 converts keccak256 hash bytes into a blockstore-prefixed multihash db key string
-func MultihashKeyFromKeccak256(h []byte) (string, error) {
-	mh, err := multihash.Encode(h, multihash.KECCAK_256)
+// CIDFromKeccak256 converts keccak256 hash bytes into a v1 cid
+func CIDFromKeccak256(hash []byte, codecType uint64) (cid.Cid, error) {
+	mh, err := multihash.Encode(hash, multihash.KECCAK_256)
 	if err != nil {
-		return "", err
+		return cid.Cid{}, err
 	}
-	dbKey := dshelp.MultihashToDsKey(mh)
-	return blockstore.BlockPrefix.String() + dbKey.String(), nil
-}
-
-// TestDB connect to the testing database
-// it assumes the database has the IPFS public.blocks table present
-// DO NOT use a production db for the test db, as it will remove all contents of the public.blocks table
-func TestDB() (*sqlx.DB, error) {
-	connectStr := "postgresql://localhost:5432/vulcanize_testing?sslmode=disable"
-	return sqlx.Connect("postgres", connectStr)
-}
-
-// ResetTestDB drops all rows in the test db public.blocks table
-func ResetTestDB(db *sqlx.DB) error {
-	_, err := db.Exec("TRUNCATE public.blocks CASCADE")
-	return err
+	return cid.NewCidV1(codecType, mh), nil
 }
