@@ -18,7 +18,7 @@ import (
     "github.com/ethereum/go-ethereum/core/state"
     "github.com/ethereum/go-ethereum/trie"
     "github.com/jmoiron/sqlx"
-    "github.com/vulcanize/ipfs-ethdb/v5/postgres"
+    "github.com/vulcanize/ipfs-ethdb/v5/postgres/v1"
 )
 
 func main() {
@@ -31,7 +31,11 @@ func main() {
     trieNodeIterator := t.NodeIterator([]byte{})
     // do stuff with trie node iterator
 
-    database := pgipfsethdb.NewDatabase(db)
+    database := pgipfsethdb.NewDatabase(db, pgipfsethdb.CacheConfig{
+		Name:           "db",
+		Size:           3000000, // 3MB
+		ExpiryDuration: time.Hour,
+	})
     stateDatabase := state.NewDatabase(database)
     stateDB, _ := state.New(common.Hash{}, stateDatabase, nil)
     stateDBNodeIterator := state.NewNodeIterator(stateDB)
