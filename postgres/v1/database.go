@@ -40,6 +40,12 @@ var (
 	putPgStr    = "INSERT INTO ipld.blocks (key, data, block_number) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"
 	deletePgStr = "DELETE FROM ipld.blocks WHERE key = $1"
 	dbSizePgStr = "SELECT pg_database_size(current_database())"
+
+	DefaultCacheConfig = CacheConfig{
+		Name:           "db",
+		Size:           3000000, // 3MB
+		ExpiryDuration: time.Hour,
+	}
 )
 
 var _ ethdb.Database = &Database{}

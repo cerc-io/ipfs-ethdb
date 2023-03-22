@@ -29,7 +29,7 @@ func Keccak256ToCid(h []byte, codec uint64) (cid.Cid, error) {
 	if err != nil {
 		return cid.Cid{}, err
 	}
-	return cid.NewCidV1(codec, multihash.Multihash(buf)), nil
+	return cid.NewCidV1(codec, buf), nil
 }
 
 // NewBlock takes a keccak256 hash key and the rlp []byte value it was derived from and creates an ipfs block object
