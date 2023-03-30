@@ -1,9 +1,9 @@
 module github.com/cerc-io/ipfs-ethdb/v4
 
-go 1.18
+go 1.19
 
 require (
-	github.com/ethereum/go-ethereum v1.11.4
+	github.com/ethereum/go-ethereum v1.11.5
 	github.com/hashicorp/golang-lru v0.5.5-0.20210104140557-80c98217689d
 	github.com/ipfs/go-block-format v0.0.3
 	github.com/ipfs/go-blockservice v0.4.0
@@ -31,6 +31,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/holiman/uint256 v1.2.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-datastore v0.5.0 // indirect
 	github.com/ipfs/go-ipfs-util v0.0.2 // indirect
@@ -68,5 +69,3 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	lukechampine.com/blake3 v1.1.6 // indirect
 )
-
-replace github.com/ethereum/go-ethereum v1.11.4 => github.com/cerc-io/go-ethereum v1.11.4-statediff-4.3.8-alpha
