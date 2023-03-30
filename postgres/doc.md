@@ -18,11 +18,11 @@ import (
     "github.com/ethereum/go-ethereum/core/state"
     "github.com/ethereum/go-ethereum/trie"
     "github.com/jmoiron/sqlx"
-    "github.com/vulcanize/ipfs-ethdb/v4/postgres"
+    "github.com/vulcanize/ipfs-ethdb/v5/postgres"
 )
 
 func main() {
-    connectStr := "postgresql://localhost:5432/vulcanize_testing?sslmode=disable"
+    connectStr := "postgresql://vdbm:password@localhost:8077/cerc_testing?sslmode=disable"
     db, _ := sqlx.Connect("postgres", connectStr)
 
     kvs := pgipfsethdb.NewKeyValueStore(db)
