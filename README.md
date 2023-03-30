@@ -1,6 +1,6 @@
 ## ipfs-ethdb
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/vulcanize/ipfs-ethdb)](https://goreportcard.com/report/github.com/vulcanize/ipfs-ethdb)
+[![Go Report Card](https://goreportcard.com/badge/github.com/cerc/ipfs-ethdb)](https://goreportcard.com/report/github.com/cerc-io/ipfs-ethdb)
 
 > go-ethereum ethdb interfaces for Ethereum state data stored in IPFS
 
@@ -11,7 +11,7 @@ interfacing with a state database. These interfaces are used to build higher-lev
 which are used to perform the bulk of state related needs.
 
 Ethereum data can be stored on IPFS, standard codecs for Etheruem data are defined in the [go-cid](https://github.com/ipfs/go-cid) library.
-Using our [statediffing geth client](https://github.com/vulcanize/go-ethereum/releases/tag/v1.9.11-statediff-0.0.2) it is feasible to extract every single
+Using our [statediffing geth client](https://github.com/cerc-io/go-ethereum/releases/tag/v1.9.11-statediff-0.0.2) it is feasible to extract every single
 state and storage node and publish it to IPFS.
 
 Geth stores state data in leveldb as key-value pairs between the keccak256 hash of the rlp-encoded object and the rlp-encoded object.
@@ -50,7 +50,7 @@ import (
     "github.com/ipfs/go-ipfs/core"
     "github.com/ipfs/go-ipfs/repo/fsrepo"
     "github.com/jmoiron/sqlx"
-    "github.com/vulcanize/ipfs-ethdb/v5"
+    "github.com/cerc-io/ipfs-ethdb/v5"
 )
 
 func main() {

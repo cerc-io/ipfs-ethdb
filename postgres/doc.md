@@ -1,6 +1,6 @@
 ## ipfs-ethdb
 
-IPFS has been [extended](https://github.com/vulcanize/go-ipfs/releases/tag/v0.4.22-alpha) to [use Postgres](https://github.com/vulcanize/go-ipfs-config/releases/tag/v0.0.8-alpha) as a backing [datastore](https://github.com/ipfs/go-ds-sql/tree/master/postgres).
+IPFS has been [extended](https://github.com/cerc-io/go-ipfs/releases/tag/v0.4.22-alpha) to [use Postgres](https://github.com/cerc-io/go-ipfs-config/releases/tag/v0.0.8-alpha) as a backing [datastore](https://github.com/ipfs/go-ds-sql/tree/master/postgres).
 Interfacing directly with the IPFS-backing Postgres database has some advantages over using the blockservice interface.
 Namely, batching of IPFS writes with other Postgres writes and avoiding lock contention on the ipfs repository (lockfile located at the `IPFS_PATH`).
 The downside is that we forgo the block-exchange capabilities of the blockservice, and are only able to fetch data contained in the local datastore.
@@ -18,7 +18,7 @@ import (
     "github.com/ethereum/go-ethereum/core/state"
     "github.com/ethereum/go-ethereum/trie"
     "github.com/jmoiron/sqlx"
-    "github.com/vulcanize/ipfs-ethdb/v5/postgres/v1"
+    "github.com/cerc-io/ipfs-ethdb/v5/postgres/v1"
 )
 
 func main() {
