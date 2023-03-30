@@ -65,6 +65,8 @@ var _ = Describe("Database", func() {
 		groupcache.DeregisterGroup("db")
 		err = shared.ResetTestDB(db)
 		Expect(err).ToNot(HaveOccurred())
+		err = db.Close()
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Describe("Has", func() {
@@ -74,7 +76,7 @@ var _ = Describe("Database", func() {
 			Expect(has).ToNot(BeTrue())
 		})
 		It("returns true if a key-pair exists in the db", func() {
-			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, $3)", testMhKey, testValue, testBlockNumber.Uint64())
+			_, err = db.Exec("INSERT into ipld.blocks (key, data, block_number) VALUES ($1, $2, $3)", testMhKey, testValue, testBlockNumber.Uint64())
 			Expect(err).ToNot(HaveOccurred())
 			has, err := database.Has(testEthKey)
 			Expect(err).ToNot(HaveOccurred())
@@ -89,7 +91,7 @@ var _ = Describe("Database", func() {
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
 		})
 		It("returns the value associated with the key, if the pair exists", func() {
-			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, $3)", testMhKey, testValue, testBlockNumber.Uint64())
+			_, err = db.Exec("INSERT into ipld.blocks (key, data, block_number) VALUES ($1, $2, $3)", testMhKey, testValue, testBlockNumber.Uint64())
 			Expect(err).ToNot(HaveOccurred())
 			val, err := database.Get(testEthKey)
 			Expect(err).ToNot(HaveOccurred())

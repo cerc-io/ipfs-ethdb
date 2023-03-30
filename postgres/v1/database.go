@@ -35,10 +35,10 @@ import (
 var errNotSupported = errors.New("this operation is not supported")
 
 var (
-	hasPgStr    = "SELECT exists(select 1 from public.blocks WHERE key = $1 LIMIT 1)"
-	getPgStr    = "SELECT data FROM public.blocks WHERE key = $1 LIMIT 1"
-	putPgStr    = "INSERT INTO public.blocks (key, data, block_number) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"
-	deletePgStr = "DELETE FROM public.blocks WHERE key = $1"
+	hasPgStr    = "SELECT exists(select 1 from ipld.blocks WHERE key = $1 LIMIT 1)"
+	getPgStr    = "SELECT data FROM ipld.blocks WHERE key = $1 LIMIT 1"
+	putPgStr    = "INSERT INTO ipld.blocks (key, data, block_number) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING"
+	deletePgStr = "DELETE FROM ipld.blocks WHERE key = $1"
 	dbSizePgStr = "SELECT pg_database_size(current_database())"
 )
 

@@ -52,7 +52,7 @@ func NewBatch(db *sqlx.DB, tx *sqlx.Tx, blockNumber *big.Int) ethdb.Batch {
 // Put satisfies the ethdb.Batch interface
 // Put inserts the given value into the key-value data store
 // Key is expected to be a fully formulated cid key
-// TODO: note, now that we expected a cid we could route to the "cids" tables based on prefix instead of to public.blocks
+// TODO: note, now that we expected a cid we could route to the "cids" tables based on prefix instead of to ipld.blocks
 // but is it better to handle this routing here, or use a completely different interface since we already have to refactor
 // at levels above this package in order to pass in cids instead of raw keccak256 hashes
 func (b *Batch) Put(cidBytes []byte, value []byte) (err error) {

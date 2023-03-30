@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-    connectStr := "postgresql://localhost:5432/vulcanize_testing?sslmode=disable"
+    connectStr := "postgresql://vdbm:password@localhost:8077/cerc_testing?sslmode=disable"
     db, _ := sqlx.Connect("postgres", connectStr)
 
     kvs := pgipfsethdb.NewKeyValueStore(db)
