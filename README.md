@@ -50,7 +50,7 @@ import (
     "github.com/ipfs/go-ipfs/core"
     "github.com/ipfs/go-ipfs/repo/fsrepo"
     "github.com/jmoiron/sqlx"
-    "github.com/vulcanize/ipfs-ethdb/v4"
+    "github.com/vulcanize/ipfs-ethdb/v5"
 )
 
 func main() {

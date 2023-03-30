@@ -1,6 +1,6 @@
-module github.com/cerc-io/ipfs-ethdb/v4
+module github.com/cerc-io/ipfs-ethdb/v5
 
-go 1.18
+go 1.19
 
 require (
 	github.com/ethereum/go-ethereum v1.11.5

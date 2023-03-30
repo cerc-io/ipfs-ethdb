@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	ipfsethdb "github.com/cerc-io/ipfs-ethdb/v4"
+	ipfsethdb "github.com/cerc-io/ipfs-ethdb/v5"
 )
 
 var (

@@ -20,7 +20,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/cerc-io/ipfs-ethdb/v4/postgres/shared"
+	"github.com/cerc-io/ipfs-ethdb/v5/postgres/shared"
 
 	"github.com/ipfs/go-cid"
 
@@ -32,7 +32,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	pgipfsethdb "github.com/cerc-io/ipfs-ethdb/v4/postgres/v0"
+	pgipfsethdb "github.com/cerc-io/ipfs-ethdb/v5/postgres/v0"
 )
 
 var (
