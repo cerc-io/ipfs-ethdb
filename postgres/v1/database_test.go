@@ -20,26 +20,33 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/cerc-io/ipfs-ethdb/v4/postgres/shared"
+
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/jmoiron/sqlx"
 	"github.com/mailgun/groupcache/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	pgipfsethdb "github.com/cerc-io/ipfs-ethdb/v4/postgres"
+	pgipfsethdb "github.com/cerc-io/ipfs-ethdb/v4/postgres/v1"
 )
 
 var (
-	batch         ethdb.Batch
-	testHeader2   = types.Header{Number: big.NewInt(2)}
-	testValue2, _ = rlp.EncodeToBytes(testHeader2)
-	testEthKey2   = testHeader2.Hash().Bytes()
+	database        ethdb.Database
+	db              *sqlx.DB
+	err             error
+	testBlockNumber = big.NewInt(1337)
+	testHeader      = types.Header{Number: testBlockNumber}
+	testValue, _    = rlp.EncodeToBytes(testHeader)
+	testEthKey      = testHeader.Hash().Bytes()
+	testMhKey, _    = pgipfsethdb.MultihashKeyFromKeccak256(testEthKey)
 )
 
-var _ = Describe("Batch", func() {
+var _ = Describe("Database", func() {
 	BeforeEach(func() {
-		db, err = pgipfsethdb.TestDB()
+		db, err = shared.TestDB()
 		Expect(err).ToNot(HaveOccurred())
 
 		cacheConfig := pgipfsethdb.CacheConfig{
@@ -53,81 +60,70 @@ var _ = Describe("Batch", func() {
 		databaseWithBlock, ok := database.(*pgipfsethdb.Database)
 		Expect(ok).To(BeTrue())
 		(*databaseWithBlock).BlockNumber = testBlockNumber
-
-		batch = database.NewBatch()
 	})
 	AfterEach(func() {
 		groupcache.DeregisterGroup("db")
-		err = pgipfsethdb.ResetTestDB(db)
+		err = shared.ResetTestDB(db)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	Describe("Put/Write", func() {
-		It("adds the key-value pair to the batch", func() {
+	Describe("Has", func() {
+		It("returns false if a key-pair doesn't exist in the db", func() {
+			has, err := database.Has(testEthKey)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(has).ToNot(BeTrue())
+		})
+		It("returns true if a key-pair exists in the db", func() {
+			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, $3)", testMhKey, testValue, testBlockNumber.Uint64())
+			Expect(err).ToNot(HaveOccurred())
+			has, err := database.Has(testEthKey)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(has).To(BeTrue())
+		})
+	})
+
+	Describe("Get", func() {
+		It("throws an err if the key-pair doesn't exist in the db", func() {
 			_, err = database.Get(testEthKey)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
-			_, err = database.Get(testEthKey2)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
-
-			err = batch.Put(testEthKey, testValue)
+		})
+		It("returns the value associated with the key, if the pair exists", func() {
+			_, err = db.Exec("INSERT into public.blocks (key, data, block_number) VALUES ($1, $2, $3)", testMhKey, testValue, testBlockNumber.Uint64())
 			Expect(err).ToNot(HaveOccurred())
-			err = batch.Put(testEthKey2, testValue2)
-			Expect(err).ToNot(HaveOccurred())
-			err = batch.Write()
-			Expect(err).ToNot(HaveOccurred())
-
 			val, err := database.Get(testEthKey)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(val).To(Equal(testValue))
-			val2, err := database.Get(testEthKey2)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(val2).To(Equal(testValue2))
 		})
 	})
 
-	Describe("Delete/Reset/Write", func() {
-		It("deletes the key-value pair in the batch", func() {
-			err = batch.Put(testEthKey, testValue)
-			Expect(err).ToNot(HaveOccurred())
-			err = batch.Put(testEthKey2, testValue2)
-			Expect(err).ToNot(HaveOccurred())
-			err = batch.Write()
-			Expect(err).ToNot(HaveOccurred())
-
-			batch.Reset()
-			err = batch.Delete(testEthKey)
-			Expect(err).ToNot(HaveOccurred())
-			err = batch.Delete(testEthKey2)
-			Expect(err).ToNot(HaveOccurred())
-			err = batch.Write()
-			Expect(err).ToNot(HaveOccurred())
-
+	Describe("Put", func() {
+		It("persists the key-value pair in the database", func() {
 			_, err = database.Get(testEthKey)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
-			_, err = database.Get(testEthKey2)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
+
+			err = database.Put(testEthKey, testValue)
+			Expect(err).ToNot(HaveOccurred())
+			val, err := database.Get(testEthKey)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(val).To(Equal(testValue))
 		})
 	})
 
-	Describe("ValueSize/Reset", func() {
-		It("returns the size of data in the batch queued for write", func() {
-			err = batch.Put(testEthKey, testValue)
+	Describe("Delete", func() {
+		It("removes the key-value pair from the database", func() {
+			err = database.Put(testEthKey, testValue)
 			Expect(err).ToNot(HaveOccurred())
-			err = batch.Put(testEthKey2, testValue2)
+			val, err := database.Get(testEthKey)
 			Expect(err).ToNot(HaveOccurred())
-			err = batch.Write()
-			Expect(err).ToNot(HaveOccurred())
+			Expect(val).To(Equal(testValue))
 
-			size := batch.ValueSize()
-			Expect(size).To(Equal(len(testValue) + len(testValue2)))
-
-			batch.Reset()
-			size = batch.ValueSize()
-			Expect(size).To(Equal(0))
+			err = database.Delete(testEthKey)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = database.Get(testEthKey)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("sql: no rows in result set"))
 		})
 	})
 })

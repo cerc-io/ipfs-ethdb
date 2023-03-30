@@ -1,5 +1,5 @@
 // VulcanizeDB
-// Copyright © 2019 Vulcanize
+// Copyright © 2023 Vulcanize
 
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as published by
@@ -14,25 +14,9 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package pgipfsethdb
+package shared
 
-import (
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	dshelp "github.com/ipfs/go-ipfs-ds-help"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq" //postgres driver
-	"github.com/multiformats/go-multihash"
-)
-
-// MultihashKeyFromKeccak256 converts keccak256 hash bytes into a blockstore-prefixed multihash db key string
-func MultihashKeyFromKeccak256(h []byte) (string, error) {
-	mh, err := multihash.Encode(h, multihash.KECCAK_256)
-	if err != nil {
-		return "", err
-	}
-	dbKey := dshelp.MultihashToDsKey(mh)
-	return blockstore.BlockPrefix.String() + dbKey.String(), nil
-}
+import "github.com/jmoiron/sqlx"
 
 // TestDB connect to the testing database
 // it assumes the database has the IPFS public.blocks table present
