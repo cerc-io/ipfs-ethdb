@@ -18,26 +18,21 @@ package shared
 
 import (
 	"github.com/jmoiron/sqlx"
-
-	"github.com/ethereum/go-ethereum/statediff/indexer/database/sql/postgres"
 )
 
-var (
-	testDBConfig, _ = postgres.Config{
-		Hostname:     "localhost",
-		DatabaseName: "cerc_testing",
-		Username:     "vdbm",
-		Password:     "password",
-		Port:         8077,
-		Driver:       "SQLX",
-	}.WithEnv()
-)
-
+/*
+	Hostname:     "localhost",
+	Port:         8077,
+	DatabaseName: "cerc_testing",
+	Username:     "vdbm",
+	Password:     "password",
+*/
 // TestDB connect to the testing database
 // it assumes the database has the IPFS ipld.blocks table present
 // DO NOT use a production db for the test db, as it will remove all contents of the ipld.blocks table
 func TestDB() (*sqlx.DB, error) {
-	return sqlx.Connect("postgres", testDBConfig.DbConnectionString())
+	connectStr := "postgresql://vdbm:password@localhost:8077/cerc_testing?sslmode=disable"
+	return sqlx.Connect("postgres", connectStr)
 }
 
 // ResetTestDB drops all rows in the test db ipld.blocks table
