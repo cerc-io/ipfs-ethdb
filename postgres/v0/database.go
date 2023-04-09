@@ -119,7 +119,7 @@ func (d *Database) dbGet(key string) ([]byte, error) {
 	var data []byte
 	err := d.db.Get(&data, getPgStr, key)
 	if err == sql.ErrNoRows {
-		log.Warn("Database miss for key", key)
+		log.Warn("Database miss for key ", key)
 	}
 
 	return data, err

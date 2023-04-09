@@ -16,7 +16,9 @@
 
 package shared
 
-import "github.com/jmoiron/sqlx"
+import (
+	"github.com/jmoiron/sqlx"
+)
 
 /*
 	Hostname:     "localhost",
@@ -25,7 +27,6 @@ import "github.com/jmoiron/sqlx"
 	Username:     "vdbm",
 	Password:     "password",
 */
-
 // TestDB connect to the testing database
 // it assumes the database has the IPFS ipld.blocks table present
 // DO NOT use a production db for the test db, as it will remove all contents of the ipld.blocks table
