@@ -278,9 +278,10 @@ func (d *Database) NewIterator(prefix []byte, start []byte) ethdb.Iterator {
 	return NewIterator(start, prefix, d.db)
 }
 
-// Close satisfies the io.Closer interface
-// Close closes the db connection
+// Close satisfies the io.Closer interface.
+// Close closes the db connection and deregisters from groupcache.
 func (d *Database) Close() error {
+	groupcache.DeregisterGroup(d.cache.Name())
 	return d.db.DB.Close()
 }
 
